@@ -1,0 +1,19 @@
+{
+  "name": "executive-dashboard-api",
+  "version": "1.0.0",
+  "description": "Executive Dashboard - Backend API tích hợp HR & Payroll Legacy Systems (Presentation-style Integration)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "mssql": "^10.0.2",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["dashboard", "integration", "hr", "payroll"],
+  "author": "Executive Dashboard Team",
+  "license": "ISC"
+}

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Dashboard - Hệ Thống Tích Hợp HR & Payroll</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Stylesheet chính -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-chart-line-up-gradient logo-icon"></i>
+                <h2>Executive</h2>
+                <span class="logo-sub">Dashboard</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="overview">
+                    <i class="fa-solid fa-house-chimney"></i> Tổng quan
+                </a>
+                <a href="#" class="nav-item" data-tab="income-report">
+                    <i class="fa-solid fa-sack-dollar"></i> Báo cáo thu nhập
+                </a>
+                <a href="#" class="nav-item" data-tab="vacation-report">
+                    <i class="fa-solid fa-plane-departure"></i> Báo cáo nghỉ phép
+                </a>
+                <a href="#" class="nav-item" data-tab="benefits-report">
+                    <i class="fa-solid fa-hand-holding-heart"></i> Phúc lợi & Cổ đông
+                </a>
+                <a href="#" class="nav-item" data-tab="filter-section">
+                    <i class="fa-solid fa-filter"></i> Bộ lọc CEO
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot online" id="api-status-dot"></span>
+                    <span class="status-text" id="api-status-text">Đang kiểm tra API...</span>
+                </div>
+                <div class="integration-method">
+                    <i class="fa-solid fa-puzzle-piece"></i> Presentation Integration
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <h1>Hệ Thống Tích Hợp Dữ Liệu Lương & Nhân Sự</h1>
+                </div>
+                <div class="header-profile">
+                    <div class="notifications-badge" id="alerts-trigger">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="badge-count" id="global-badge-count">0</span>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="profile-info">
+                        <span class="profile-role">Chào mừng, CEO</span>
+                        <span class="profile-name">Ban Giám Đốc</span>
+                    </div>
+                    <div class="profile-avatar">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Screens -->
+            <div class="content-body">
+                
+                <!-- SCREEN 1: OVERVIEW -->
+                <section class="tab-content active" id="overview-tab">
+                    <!-- Stat Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card glass-panel pink-glow clickable-card" data-target-tab="income-report" title="Click để xem Báo cáo thu nhập">
+                            <div class="stat-header">
+                                <span class="stat-title">Tổng số nhân sự</span>
+                                <i class="fa-solid fa-users stat-icon"></i>
+                            </div>
+                            <h3 class="stat-value" id="stat-total-emp">-</h3>
+                            <span class="stat-trend trend-neutral">Từ 2 nguồn CSDL gộp <i class="fa-solid fa-circle-chevron-right" style="margin-left: 4px; font-size: 0.7rem;"></i></span>
+                        </div>
+                        <div class="stat-card glass-panel purple-glow clickable-card" data-target-tab="income-report" title="Click để xem Báo cáo thu nhập">
+                            <div class="stat-header">
+                                <span class="stat-title">Tổng quỹ lương năm nay</span>
+                                <i class="fa-solid fa-wallet stat-icon"></i>
+                            </div>
+                            <h3 class="stat-value" id="stat-total-payroll">-</h3>
+                            <span class="stat-trend trend-up"><i class="fa-solid fa-arrow-trend-up"></i> So với năm ngoái <i class="fa-solid fa-circle-chevron-right" style="margin-left: 4px; font-size: 0.7rem;"></i></span>
+                        </div>
+                        <div class="stat-card glass-panel blue-glow clickable-card" data-target-tab="vacation-report" title="Click để xem Báo cáo nghỉ phép">
+                            <div class="stat-header">
+                                <span class="stat-title">Nghỉ phép trung bình</span>
+                                <i class="fa-solid fa-calendar-days stat-icon"></i>
+                            </div>
+                            <h3 class="stat-value" id="stat-avg-vacation">-</h3>
+                            <span class="stat-trend">Ngày phép / nhân viên <i class="fa-solid fa-circle-chevron-right" style="margin-left: 4px; font-size: 0.7rem;"></i></span>
+                        </div>
+                        <div class="stat-card glass-panel orange-glow clickable-card" data-target-trigger="alerts" title="Click để mở Trung tâm cảnh báo">
+                            <div class="stat-header">
+                                <span class="stat-title">Cảnh báo hệ thống</span>
+                                <i class="fa-solid fa-triangle-exclamation stat-icon"></i>
+                            </div>
+                            <h3 class="stat-value" id="stat-total-alerts">-</h3>
+                            <span class="stat-trend trend-down">Cần xử lý ngay <i class="fa-solid fa-circle-chevron-right" style="margin-left: 4px; font-size: 0.7rem;"></i></span>
+                        </div>
+                    </div>
+
+                    <!-- Double Column Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container glass-panel">
+                            <div class="chart-header">
+                                <h3>Tổng thu nhập theo phòng ban</h3>
+                                <div class="chart-actions">
+                                    <span class="badge">Năm nay vs Năm ngoái</span>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="incomeDeptChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-container glass-panel">
+                            <div class="chart-header">
+                                <h3>Phân bổ ngày phép theo phòng ban</h3>
+                                <span class="badge">Tổng ngày nghỉ</span>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="vacationDeptChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Split: Alerts Panel & Quick Info -->
+                    <div class="bottom-split-row">
+                        <div class="alerts-panel glass-panel">
+                            <div class="panel-header">
+                                <h3><i class="fa-solid fa-circle-exclamation text-warning"></i> Cảnh báo giám sát (Alerts)</h3>
+                                <button class="btn btn-sm btn-outline-warning" id="btn-refresh-alerts">Làm mới</button>
+                            </div>
+                            <div class="alerts-list" id="overview-alerts-list">
+                                <!-- List alerts will be generated dynamically -->
+                                <div class="alert-empty">Đang tải cảnh báo...</div>
+                            </div>
+                        </div>
+
+                        <div class="integration-info-panel glass-panel">
+                            <div class="panel-header">
+                                <h3>Sơ đồ tích hợp Tầng hiển thị</h3>
+                            </div>
+                            <div class="architecture-diagram">
+                                <div class="arch-db shadow-sm">
+                                    <i class="fa-solid fa-database text-pink"></i>
+                                    <span>HR_Legacy_DB (Read-Only)</span>
+                                </div>
+                                <div class="arch-db shadow-sm">
+                                    <i class="fa-solid fa-database text-blue"></i>
+                                    <span>Payroll_Legacy_DB (Read-Only)</span>
+                                </div>
+                                <div class="arch-arrow">
+                                    <i class="fa-solid fa-angles-down text-purple"></i>
+                                    <span class="arrow-text">App-level JOIN</span>
+                                </div>
+                                <div class="arch-app shadow-sm">
+                                    <i class="fa-solid fa-gears text-purple"></i>
+                                    <span>Integration Service (Backend Node.js)</span>
+                                </div>
+                                <div class="arch-arrow">
+                                    <i class="fa-solid fa-angles-down text-purple"></i>
+                                    <span class="arrow-text">JSON APIs</span>
+                                </div>
+                                <div class="arch-dashboard shadow-sm">
+                                    <i class="fa-solid fa-display text-emerald"></i>
+                                    <span>Presentation Executive Dashboard</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN 2: INCOME REPORT -->
+                <section class="tab-content" id="income-report-tab">
+                    <div class="report-filters glass-panel">
+                        <div class="filter-header">
+                            <h3>Báo cáo 1: Tổng thu nhập tính đến nay & năm trước</h3>
+                            <div class="select-wrapper">
+                                <label for="income-groupby">Phân loại theo tiêu chí (Drill-down):</label>
+                                <select id="income-groupby" class="custom-select">
+                                    <option value="department">Phòng ban (Department)</option>
+                                    <option value="shareholder">Trạng thái cổ đông (Shareholder)</option>
+                                    <option value="gender">Giới tính (Gender)</option>
+                                    <option value="ethnicity">Sắc tộc (Ethnicity)</option>
+                                    <option value="employment_type">Loại hình làm việc (Employment Type)</option>
+                                </select>
+                            </div>
+                            <div class="report-actions-group">
+                                <button class="btn btn-sm btn-outline-primary btn-export" data-format="pdf" data-report="income">
+                                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-success btn-export" data-format="excel" data-report="income">
+                                    <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-grid">
+                        <div class="chart-card glass-panel">
+                            <h3>Mô hình so sánh thu nhập năm trước vs năm nay</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="reportIncomeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="table-card glass-panel">
+                            <h3>Chi tiết số liệu tổng hợp</h3>
+                            <div class="table-responsive">
+                                <table class="custom-table" id="income-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Phân nhóm</th>
+                                            <th>Số NV</th>
+                                            <th>Quỹ lương năm ngoái</th>
+                                            <th>Quỹ lương năm nay</th>
+                                            <th>Trung bình năm nay</th>
+                                            <th>Biến động</th>
+                                            <th>Chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rows inserted dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN 3: VACATION REPORT -->
+                <section class="tab-content" id="vacation-report-tab">
+                    <div class="report-filters glass-panel">
+                        <div class="filter-header">
+                            <h3>Báo cáo 2: Thống kê số ngày nghỉ phép đã nghỉ</h3>
+                            <div class="select-wrapper">
+                                <label for="vacation-groupby">Phân loại theo tiêu chí (Drill-down):</label>
+                                <select id="vacation-groupby" class="custom-select">
+                                    <option value="department">Phòng ban (Department)</option>
+                                    <option value="shareholder">Trạng thái cổ đông (Shareholder)</option>
+                                    <option value="gender">Giới tính (Gender)</option>
+                                    <option value="ethnicity">Sắc tộc (Ethnicity)</option>
+                                    <option value="employment_type">Loại hình làm việc (Employment Type)</option>
+                                </select>
+                            </div>
+                            <div class="report-actions-group">
+                                <button class="btn btn-sm btn-outline-primary btn-export" data-format="pdf" data-report="vacation">
+                                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-success btn-export" data-format="excel" data-report="vacation">
+                                    <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-grid">
+                        <div class="chart-card glass-panel">
+                            <h3>Biểu đồ phân bổ ngày nghỉ phép</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="reportVacationChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="table-card glass-panel">
+                            <h3>Chi tiết số ngày phép đã nghỉ</h3>
+                            <div class="table-responsive">
+                                <table class="custom-table" id="vacation-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Phân nhóm</th>
+                                            <th>Số NV</th>
+                                            <th>Tổng ngày nghỉ phép</th>
+                                            <th>Ngày phép trung bình / NV</th>
+                                            <th>Chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rows inserted dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN 4: BENEFITS REPORT -->
+                <section class="tab-content" id="benefits-report-tab">
+                    <div class="report-header glass-panel">
+                        <div class="filter-header" style="width: 100%;">
+                            <div>
+                                <h3>Báo cáo 3: Mức phúc lợi trung bình chi trả cho cổ đông và non-shareholder theo từng gói phúc lợi</h3>
+                                <p class="text-secondary" style="margin-top: 4px;">Dữ liệu được tích hợp dựa trên trạng thái cổ đông từ database Lương và thông tin nhân sự từ database HR.</p>
+                            </div>
+                            <div class="report-actions-group">
+                                <button class="btn btn-sm btn-outline-primary btn-export" data-format="pdf" data-report="benefits">
+                                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-success btn-export" data-format="excel" data-report="benefits">
+                                    <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="benefits-container">
+                        <div class="benefits-summary-cards" id="benefits-cards-grid">
+                            <!-- Dynamically generated plan cards -->
+                        </div>
+
+                        <div class="benefits-table-card glass-panel">
+                            <h3>Chi tiết phân rã cơ cấu thu nhập & phúc lợi</h3>
+                            <div class="table-responsive">
+                                <table class="custom-table" id="benefits-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Gói phúc lợi</th>
+                                            <th>Trạng thái cổ đông</th>
+                                            <th>Số lượng NV</th>
+                                            <th>Tổng thu nhập năm nay</th>
+                                            <th>Thu nhập trung bình</th>
+                                            <th>Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Rows inserted dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN 5: FILTER SECTION -->
+                <section class="tab-content" id="filter-section-tab">
+                    <div class="filter-dashboard glass-panel">
+                        <div class="filter-prompt-header">
+                            <h3><i class="fa-solid fa-magnifying-glass"></i> Bộ lọc thông minh của CEO</h3>
+                            <p class="text-secondary">Câu hỏi nghiệp vụ: "Những nhân viên nào có thu nhập vượt quá một mức số tiền nhất định [Amount] trong năm ngoái, phân loại theo từng phòng ban?"</p>
+                        </div>
+                        
+                        <div class="filter-controls-row">
+                            <div class="control-group">
+                                <label for="filter-search"><i class="fa-solid fa-signature"></i> Tìm tên / Mã NV:</label>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-user"></i>
+                                    <input type="text" id="filter-search" placeholder="Nhập tên hoặc mã NV..." style="width: 170px;">
+                                </div>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label for="filter-amount"><i class="fa-solid fa-dollar-sign"></i> Thu nhập năm ngoái tối thiểu:</label>
+                                <div class="input-with-icon">
+                                    <i class="fa-solid fa-money-bill-wave"></i>
+                                    <input type="number" id="filter-amount" value="50000" placeholder="Ví dụ: 50000" min="0" style="width: 170px;">
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <label for="filter-dept"><i class="fa-solid fa-building"></i> Phòng ban:</label>
+                                <select id="filter-dept" class="custom-select">
+                                    <option value="">Tất cả phòng ban</option>
+                                    <option value="IT">IT</option>
+                                    <option value="HR">HR</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Operations">Operations</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <label for="filter-shareholder"><i class="fa-solid fa-coins"></i> Cổ đông:</label>
+                                <select id="filter-shareholder" class="custom-select">
+                                    <option value="">Tất cả</option>
+                                    <option value="Shareholder">Cổ đông</option>
+                                    <option value="Non-Shareholder">Không phải cổ đông</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <label for="filter-employment-type"><i class="fa-solid fa-briefcase"></i> Loại hình:</label>
+                                <select id="filter-employment-type" class="custom-select">
+                                    <option value="">Tất cả</option>
+                                    <option value="Full-time">Full-time</option>
+                                    <option value="Part-time">Part-time</option>
+                                </select>
+                            </div>
+
+                            <div class="control-group">
+                                <label for="filter-gender"><i class="fa-solid fa-venus-mars"></i> Giới tính:</label>
+                                <select id="filter-gender" class="custom-select">
+                                    <option value="">Tất cả</option>
+                                    <option value="Male">Nam</option>
+                                    <option value="Female">Nữ</option>
+                                </select>
+                            </div>
+
+                            <button class="btn btn-primary" id="btn-submit-filter" style="height: 38px;">
+                                <i class="fa-solid fa-filter"></i> Lọc dữ liệu
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="filter-results" id="filter-results-container" style="display: none;">
+                        <div class="results-summary glass-panel">
+                            <span class="result-count-badge" id="results-count-text">Tìm thấy 0 nhân sự thỏa mãn</span>
+                        </div>
+
+                        <!-- Department Groups Grid -->
+                        <div class="departments-grid" id="filter-departments-results">
+                            <!-- Dynamically generated department groups and their employee cards -->
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Drill-down Details Modal -->
+    <div class="modal-backdrop" id="drilldown-modal" style="display: none;">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3 id="modal-title">Chi tiết nhóm</h3>
+                <button class="close-modal" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="position: relative;">
+                <!-- Chế độ Xem Bảng (Tabular Drill-down) -->
+                <div class="table-responsive" id="modal-table-view">
+                    <table class="custom-table" id="modal-details-table">
+                        <thead>
+                            <tr id="modal-table-headers">
+                                <!-- Dynamic headers -->
+                            </tr>
+                        </thead>
+                        <tbody id="modal-table-body">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Chế độ Xem Chi tiết Nhân viên (Employee Profile Card) -->
+                <div id="modal-profile-view" style="display: none; padding: 10px 0;">
+                    <!-- Dynamic Profile Card HTML will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Alerts Bar (Real-time Alert Center) -->
+    <div class="alerts-sidebar" id="alerts-sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fa-solid fa-bell"></i> Trung tâm cảnh báo</h3>
+            <button class="close-alerts" id="alerts-close"><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div class="sidebar-alerts-content" id="alerts-sidebar-list">
+            <!-- Full details of warnings will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Logic Script imports -->
+    <script src="js/filters.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
