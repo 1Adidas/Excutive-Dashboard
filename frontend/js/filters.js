@@ -9,6 +9,23 @@
  */
 
 /**
+ * Hàm escape HTML để ngăn chặn lỗ hổng bảo mật XSS (Cross-Site Scripting)
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, function(m) {
+        switch (m) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return m;
+        }
+    });
+}
+
+/**
  * Thực thi lọc nhân viên và cập nhật giao diện kết quả
  * @param {string} apiBaseUrl - Cấu hình base URL của API
  */
@@ -61,7 +78,7 @@ async function executeCEOFilter(apiBaseUrl) {
 
         // Xây dựng mô tả bộ lọc hiển thị cho CEO
         let descParts = [];
-        if (search) descParts.push(`từ khóa "${search}"`);
+        if (search) descParts.push(`từ khóa "${escapeHTML(search)}"`);
         if (amount) descParts.push(`thu nhập năm ngoái > $${parseFloat(amount).toLocaleString()}`);
         if (department) descParts.push(`phòng ban ${department}`);
         if (shareholder) descParts.push(shareholder === 'Shareholder' ? 'cổ đông' : 'không phải cổ đông');
