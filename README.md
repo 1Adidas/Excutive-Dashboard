@@ -1,32 +1,37 @@
-# BÀI TẬP LỚN MÔN HỌC: TÍCH HỢP HỆ THỐNG PHẦN MỀM (SE445)
-## ĐỀ TÀI: ĐỒNG BỘ VÀ TÍCH HỢP HỆ THỐNG QUẢN LÝ NHÂN SỰ & LƯƠNG (EXECUTIVE INTEGRATION DASHBOARD)
+# EXECUTIVE INTEGRATION DASHBOARD (HR & PAYROLL INTEGRATION)
+## BÀI TẬP THỰC HÀNH MÔN HỌC: TÍCH HỢP HỆ THỐNG PHẦN MỀM (SE445)
 
-Dự án này là sản phẩm thực hành thiết kế giải pháp tích hợp dữ liệu ở **Tầng trình diễn (Presentation-level Integration)** giữa hai hệ thống di sản (Legacy Systems) hoạt động độc lập: **Hệ thống Nhân sự (HR System)** và **Hệ thống Lương (Payroll System)**.
-
----
-
-## 📌 1. Mục tiêu & Ý nghĩa Đề tài
-
-Trong thực tế doanh nghiệp, việc sáp nhập hoặc nâng cấp hệ thống thường để lại các cơ sở dữ liệu cũ (Legacy Databases) không thể sửa đổi cấu trúc (ràng buộc hộp đen - Black-box). Dự án này giải quyết bài toán tích hợp thông tin của ban giám đốc (CEO) mà:
-* **Không làm thay đổi schema** của các cơ sở dữ liệu cũ.
-* **Không cài đặt trigger, stored procedure** hay can thiệp ghi đè dữ liệu gốc.
-* **Tuân thủ nguyên tắc Read-Only** đối với các hệ thống nguồn.
-* Thực hiện **Application-level JOIN** (gộp dữ liệu ở tầng ứng dụng bằng JavaScript) để xuất bản các báo cáo tổng hợp thời gian thực.
+> [!NOTE]  
+> **DANH CHO NHÀ TUYỂN DỤNG (RECRUITER QUICK VIEW)**  
+> Dự án này không chỉ là một bài tập học thuật đơn thuần, mà là một mô hình giải quyết bài toán tích hợp dữ liệu doanh nghiệp thực tế. Repo này thể hiện khả năng thiết kế hệ thống, tối ưu hóa hiệu năng xử lý bất đồng bộ, tư duy lập trình tối giản (Vanilla JS) và giải quyết các bài toán ràng buộc nghiệp vụ trong môi trường doanh nghiệp thực tế.
 
 ---
 
-## 🏗️ 2. Kiến trúc Tích hợp Hệ thống
+## 📌 1. Bối cảnh Doanh nghiệp & Bài toán Tích hợp
 
-Mô hình tích hợp được triển khai theo cơ chế tích hợp mức hiển thị thông qua một API Gateway trung gian:
+### Bối cảnh Thực tế
+Trong các kịch bản M&A (Sáp nhập & Mua lại) hoặc vận hành doanh nghiệp lớn, hệ thống **Nhân sự (HR)** và hệ thống **Lương (Payroll)** thường chạy độc lập trên các hạ tầng di sản (Legacy Systems). Việc hợp nhất dữ liệu gặp các rào cản lớn:
+* **Hộp đen cơ sở dữ liệu (Black-box DB)**: Không được quyền can thiệp thay đổi cấu trúc bảng, không được ghi trực tiếp, không được cài đặt triggers hoặc stored procedures để tránh phá vỡ tính ổn định của hệ thống cũ.
+* **Bảo mật dữ liệu**: Tầng tích hợp chỉ được cấp quyền **Read-Only (SELECT)** để khai thác dữ liệu phục vụ báo cáo cho Ban Giám Đốc (CEO).
+
+### Giải pháp Tích hợp Tầng Trình diễn (Presentation-level Integration)
+Dự án triển khai một **Integration Gateway (Node.js/Express)** trung gian đóng vai trò cầu nối:
+1. Đọc dữ liệu độc lập và an toàn từ 2 database.
+2. Gộp dữ liệu tại bộ nhớ đệm (RAM) của ứng dụng bằng các thuật toán tối ưu.
+3. Cung cấp API chuẩn hóa để Frontend kết xuất báo cáo thống kê trực quan.
+
+---
+
+## 🏗️ 2. Kiến trúc Tích hợp & Sơ đồ luồng dữ liệu
 
 ```mermaid
 graph TD
-    subgraph Legacy Databases (SQL Server)
+    subgraph "Legacy Databases (SQL Server)"
         DB_HR[(HR_Legacy_DB)]
         DB_PAY[(Payroll_Legacy_DB)]
     end
 
-    subgraph Backend Integration Layer (Node.js & Express)
+    subgraph "Backend Integration Layer (Node.js & Express)"
         Service_HR[HR Service]
         Service_Pay[Payroll Service]
         Integration[Integration Service]
@@ -39,7 +44,7 @@ graph TD
         Integration -->|Application-level JOIN| API_Routes
     end
 
-    subgraph Premium Frontend (Presentation Layer)
+    subgraph "Premium Frontend (Presentation Layer)"
         UI[Glassmorphism Executive Dashboard]
         API_Routes -->|JSON Payload| UI
     end
@@ -49,82 +54,98 @@ graph TD
     style UI fill:#dfd,stroke:#333,stroke-width:2px
 ```
 
-* **HR_Legacy_DB**: Lưu thông tin hồ sơ nhân sự (Phòng ban, Ngày sinh, Ngày tuyển dụng, Sắc tộc, Tình trạng hôn nhân, Số ngày phép đã dùng...).
-* **Payroll_Legacy_DB**: Lưu thông tin thu nhập và chính sách đãi ngộ (Lương năm nay, Lương năm ngoái, Trạng thái cổ đông, Loại hình lao động, Gói phúc lợi...).
-* **Integration Service**: Thực hiện truy vấn **song song (parallel queries)** vào hai cơ sở dữ liệu để tối ưu hóa thời gian phản hồi, sau đó dùng khóa liên kết logic là `Employee_ID` để tự động khớp nối thông tin trên bộ nhớ RAM của máy chủ Node.js.
+* **HR_Legacy_DB**: Quản lý hồ sơ nhân sự (Phòng ban, Ngày sinh, Ngày tuyển dụng, Sắc tộc, Tình trạng hôn nhân, Số ngày phép đã dùng...).
+* **Payroll_Legacy_DB**: Quản lý chính sách lương & đãi ngộ (Lương năm nay, Lương năm ngoái, Trạng thái cổ đông, Loại hình lao động, Gói phúc lợi...).
 
 ---
 
-## 🌟 3. Các Tính năng Chính trên Dashboard dành cho CEO
+## ⚡ 3. Quyết định Thiết kế & Tối ưu hóa Kỹ thuật (Design Tradeoffs)
 
-Dashboard được xây dựng với giao diện **Glassmorphism Dark Theme** hiện đại, tối ưu hóa trải nghiệm điều hành của CEO:
+Dự án này chứng minh năng lực đưa ra quyết định kỹ thuật dựa trên các đánh giá đánh đổi thiết thực:
 
-1. **Thống kê KPIs động (Interactive KPIs)**:
-   * Hiển thị tổng số lượng nhân sự gộp, tổng quỹ lương năm nay, số ngày nghỉ phép trung bình và số cảnh báo cần xử lý.
-   * Các thẻ có khả năng tương tác, nhấp vào sẽ tự động chuyển tab báo cáo liên quan hoặc kích hoạt trung tâm thông báo.
-2. **Hệ thống 3 Báo cáo Phân tích Chuyên sâu (Drill-down Reports)**:
-   * **Báo cáo Thu nhập**: So sánh biến động quỹ lương năm trước và năm nay theo các chiều (Drill-down): Phòng ban, Trạng thái cổ đông, Giới tính, Sắc tộc, Loại hình làm việc.
-   * **Báo cáo Nghỉ phép**: Theo dõi tỉ lệ phân bổ ngày nghỉ phép, khoanh vùng các bộ phận vượt quy chế nghỉ phép (>15 ngày phép).
-   * **Báo cáo Phúc lợi**: Thống kê mức thu nhập trung bình chi trả cho cổ đông so với nhân viên thường theo từng cấp độ gói phúc lợi (Standard, Gold, Platinum).
-3. **Chi tiết hồ sơ nhân sự gộp (Cross-DB Profile View)**:
-   * Click vào bất kỳ nhân sự nào trên các bảng báo cáo để mở ngay thẻ thông tin chi tiết tích hợp dữ liệu của cả HR & Lương trên một màn hình duy nhất (bao gồm cả chỉ số tăng trưởng lương cá nhân).
-4. **Bộ lọc thông minh CEO (CEO Smart Filter)**:
-   * Hỗ trợ tìm kiếm nhanh theo Tên/Mã nhân viên kết hợp đồng thời nhiều bộ lọc nâng cao (Khoảng lương năm ngoái, Phòng ban, Loại hình, Cổ đông, Giới tính) để truy xuất dữ liệu đích tức thời.
-5. **Trung tâm Chỉ thị Nhanh (Alert Action Center)**:
-   * Phát hiện tự động các sự kiện: nhân sự quá ngày phép quy định, nhân sự sinh nhật trong tháng, kỷ niệm ngày tuyển dụng/kỷ niệm cưới sắp tới, hoặc thu nhập biến động bất thường (>10%).
-   * Cho phép CEO viết và gửi email chỉ thị hoặc thư chúc mừng trực tiếp từ thẻ thông báo (simulated).
-6. **Mô phỏng Xuất báo cáo (Report Exports)**:
-   * Cho phép tải xuống các dữ liệu tổng hợp dưới dạng PDF và Excel (mô phỏng tiến trình kết xuất thời gian thực).
+### 1. Chọn Application-level JOIN thay vì Database-level JOIN (Linked Server / Cross-DB Query)
+* **Lý do**: Sử dụng Linked Server hoặc Cross-Database Query tăng độ phụ thuộc vật lý giữa hai DB, giảm khả năng mở rộng (scale) và tạo gánh nặng kết nối trực tiếp trên SQL Server. 
+* **Giải pháp**: Tải dữ liệu thô về Node.js RAM và thực hiện JOIN trong memory. Việc này giúp giảm tải cho SQL Server, cô lập cơ sở dữ liệu và dễ dàng chuyển đổi sang kiến trúc Microservices sau này.
+
+### 2. Tối ưu hiệu năng kết xuất dữ liệu
+* **Truy vấn song song (Parallel Promises)**: Thay vì truy vấn tuần tự làm nhân đôi thời gian phản hồi (Latency), backend sử dụng `Promise.all` để lấy dữ liệu đồng thời từ cả hai cơ sở dữ liệu:
+  ```javascript
+  const [employees, payrolls] = await Promise.all([
+      hrService.getAllEmployees(),
+      payrollService.getAllPayroll()
+  ]);
+  ```
+* **Bản đồ tra cứu O(1) (Lookup Map Optimization)**: Thay vì sử dụng hai vòng lặp lồng nhau có độ phức tạp thuật toán là $O(N^2)$, dự án chuyển đổi danh sách Lương sang cấu trúc dữ liệu `Map` trong JavaScript để thực hiện liên kết dữ liệu với độ phức tạp tối ưu là $O(N)$:
+  ```javascript
+  const payrollMap = new Map();
+  payrolls.forEach(p => payrollMap.set(p.Employee_ID, p));
+  const merged = employees.map(emp => {
+      const payroll = payrollMap.get(emp.Employee_ID) || {};
+      // mapping logic...
+  });
+  ```
+
+### 3. Thiết kế Giao diện tập trung hiệu năng (Zero-Framework Vanilla JS Frontend)
+* Thay vì sử dụng các Framework cồng kềnh (như React/Angular) làm phình to dung lượng tải trang không cần thiết đối với một ứng dụng Single-Page Dashboard, dự án sử dụng **Vanilla JavaScript thuần túy** kết hợp với **CSS Grid/Flexbox** và **Chart.js**. 
+* Giao diện tải gần như lập tức và có hoạt ảnh mượt mà, đạt điểm hiệu năng cao trên Lighthouse.
 
 ---
 
-## 💻 4. Công nghệ Sử dụng
+## 🌟 4. Kỹ năng & Kiến thức Đạt được sau Dự án
 
-* **Cơ sở dữ liệu**: Microsoft SQL Server (SQLEXPRESS).
-* **Máy chủ Backend**: Node.js v20+, Express framework.
-* **Thư viện kết nối**: `mssql` (tedious wrapper), `dotenv`.
-* **Giao diện Frontend**: HTML5, CSS3 (Custom Glassmorphism styling), Vanilla Javascript (ES6), FontAwesome Icons, Chart.js.
+Qua việc thực hiện dự án này, người phát triển đã tích lũy và thể hiện được các kỹ năng quan trọng của một **Fullstack/Integration Engineer**:
+
+### Kỹ năng Thiết kế Kiến trúc & Tích hợp (Integration Patterns)
+- Hiểu sâu sắc và áp dụng thành công mô hình tích hợp dữ liệu tầng trình diễn (Presentation-level integration).
+- Nắm vững nguyên lý kết nối bất đồng bộ và kiểm soát hồ kết nối dữ liệu (Connection Pooling) trong SQL Server thông qua thư viện Node-mssql.
+- Xây dựng hệ thống cảnh báo nghiệp vụ thông minh bằng kỹ thuật tự động phân tích dữ liệu gộp thời gian thực (real-time data analytics).
+
+### Kỹ năng Backend & Database Security
+- Quản lý phân quyền đăng nhập SQL Server an toàn (SQL Server Authentication), tạo các tài khoản `db_datareader` có quyền lực tối thiểu nhằm tuân thủ nguyên tắc **Least Privilege (Quyền hạn tối thiểu)**.
+- Sử dụng tham số hóa truy vấn (Parameterized Queries) để triệt tiêu hoàn toàn nguy cơ tấn công **SQL Injection**.
+- Xây dựng API Clean Architecture: Phân tách rõ ràng giữa cấu hình (`config/`), tuyến định tuyến (`routes/`), và tầng xử lý logic nghiệp vụ (`services/`).
+
+### Kỹ năng Frontend & UI/UX Design
+- Thiết kế giao diện **Glassmorphism Dark Theme** thời thượng sử dụng CSS Variables để quản lý các mã màu neon rực rỡ và soft glows.
+- Áp dụng các micro-animations tinh tế (hover transitions, card pulse) tạo cảm giác giao diện "sống động" và phản hồi tích cực với thao tác của người dùng.
+- Kỹ năng tích hợp thư viện đồ thị chuyên sâu (Chart.js), định cấu hình vẽ biểu đồ cột phức hợp (Grouped Bar Chart) và biểu đồ Doughnut có tùy chỉnh tooltip, màu sắc gradient nâng cao.
+- **Tư duy hướng đến hành động của CEO**: Thống kê KPIs có thể click để chuyển nhanh màn hình, tạo Action Center để CEO ra chỉ thị lập tức từ các cảnh báo hệ thống, tích hợp tính năng tải báo cáo PDF/Excel mô phỏng tiện dụng.
 
 ---
 
 ## ⚙️ 5. Hướng dẫn Cài đặt & Chạy dự án (Dev Setup)
 
 ### Bước 1: Khởi tạo Cơ sở Dữ liệu (SQL Server)
-1. Mở phần mềm **SQL Server Management Studio (SSMS)** và kết nối tới máy chủ SQL Server của bạn (thường là `localhost\SQLEXPRESS`).
-2. Mở và chạy lần lượt 3 file SQL scripts nằm trong thư mục [`database/`](file:///d:/University/TichHopHeThong/SE445/Project/database/):
-   * Chạy [`01_create_hr_db.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/01_create_hr_db.sql) để tạo cơ sở dữ liệu nhân sự `HR_Legacy_DB`.
-   * Chạy [`02_create_payroll_db.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/02_create_payroll_db.sql) để tạo cơ sở dữ liệu lương `Payroll_Legacy_DB`.
-   * Chạy [`03_insert_mock_data.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/03_insert_mock_data.sql) để nạp 10 bản ghi nhân sự mẫu.
+1. Mở **SQL Server Management Studio (SSMS)** và kết nối tới SQL Server (thường là `localhost\SQLEXPRESS`).
+2. Mở và chạy lần lượt các script SQL trong thư mục [`database/`](file:///d:/University/TichHopHeThong/SE445/Project/database/):
+   * Chạy [`01_create_hr_db.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/01_create_hr_db.sql) để tạo DB nhân sự `HR_Legacy_DB`.
+   * Chạy [`02_create_payroll_db.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/02_create_payroll_db.sql) để tạo DB lương `Payroll_Legacy_DB`.
+   * Chạy [`03_insert_mock_data.sql`](file:///d:/University/TichHopHeThong/SE445/Project/database/03_insert_mock_data.sql) để nạp 10 bản ghi mẫu.
 
-### Bước 2: Thiết lập Tài khoản đăng nhập SQL Server (SQL Authentication)
-Để ứng dụng Express có thể kết nối đến cơ sở dữ liệu thông qua tài khoản đăng nhập SQL Server:
-1. Đảm bảo SQL Server của bạn đã bật chế độ **Mixed Mode Authentication** (Cả SQL Server & Windows Authentication).
-2. Tạo tài khoản đăng nhập `dashboard_user` với mật khẩu là `123456` bằng cách chạy script sau trong SSMS:
-   ```sql
-   -- Tạo login trên toàn server
-   CREATE LOGIN dashboard_user WITH PASSWORD = '123456';
-   GO
-   
-   -- Cấp quyền truy cập và quyền đọc (datareader) trên HR_Legacy_DB
-   USE HR_Legacy_DB;
-   CREATE USER dashboard_user FOR LOGIN dashboard_user;
-   ALTER ROLE db_datareader ADD MEMBER dashboard_user;
-   GO
-   
-   -- Cấp quyền truy cập và quyền đọc (datareader) trên Payroll_Legacy_DB
-   USE Payroll_Legacy_DB;
-   CREATE USER dashboard_user FOR LOGIN dashboard_user;
-   ALTER ROLE db_datareader ADD MEMBER dashboard_user;
-   GO
-   ```
+### Bước 2: Tạo tài khoản đăng nhập SQL Server (SQL Authentication)
+Để ứng dụng Express kết nối DB bảo mật, chạy đoạn mã dưới đây trong SSMS để tạo tài khoản phân quyền Read-Only:
+```sql
+CREATE LOGIN dashboard_user WITH PASSWORD = '123456';
+GO
 
-### Bước 3: Cấu hình biến môi trường Backend
+USE HR_Legacy_DB;
+CREATE USER dashboard_user FOR LOGIN dashboard_user;
+ALTER ROLE db_datareader ADD MEMBER dashboard_user;
+GO
+
+USE Payroll_Legacy_DB;
+CREATE USER dashboard_user FOR LOGIN dashboard_user;
+ALTER ROLE db_datareader ADD MEMBER dashboard_user;
+GO
+```
+
+### Bước 3: Cấu hình biến môi trường
 1. Di chuyển vào thư mục [`backend/`](file:///d:/University/TichHopHeThong/SE445/Project/backend/).
-2. Tạo một file mới tên là `.env` (bạn có thể copy từ [`.env.local`](file:///d:/University/TichHopHeThong/SE445/Project/backend/.env.local) hoặc tham khảo [`.env.example`](file:///d:/University/TichHopHeThong/SE445/Project/backend/.env.example)).
-3. Định cấu hình thông tin kết nối SQL Server của bạn trong file `.env`:
+2. Tạo file `.env` bằng cách copy nội dung từ file [`.env.local`](file:///d:/University/TichHopHeThong/SE445/Project/backend/.env.local).
+3. Đảm bảo cấu hình khớp với SQL Server nội bộ của bạn:
    ```env
-   DB_SERVER=localhost\\SQLEXPRESS  # Tên Server SQL của bạn (đổi thành localhost nếu dùng Default Instance)
-   DB_PORT=1433
+   DB_SERVER=localhost\\SQLEXPRESS  # Server name
+   DB_PORT=1433                     # SQL Port
    DB_USER=dashboard_user
    DB_PASSWORD=123456
    HR_DB_NAME=HR_Legacy_DB
@@ -135,16 +156,15 @@ Dashboard được xây dựng với giao diện **Glassmorphism Dark Theme** hi
    ```
 
 ### Bước 4: Khởi chạy dự án
-Mở Terminal trong thư mục [`backend/`](file:///d:/University/TichHopHeThong/SE445/Project/backend/) và chạy các lệnh sau:
+Mở Terminal tại thư mục [`backend/`](file:///d:/University/TichHopHeThong/SE445/Project/backend/) và chạy:
+```bash
+# Cài đặt thư viện
+npm install
 
-1. **Cài đặt thư viện dependencies**:
-   ```bash
-   npm install
-   ```
-2. **Chạy Server ở chế độ nhà phát triển (Dev Mode)**:
-   ```bash
-   npm run dev
-   ```
-3. **Truy cập ứng dụng**:
-   Mở trình duyệt của bạn và nhập địa chỉ: **[http://localhost:3000](http://localhost:3000)** để xem giao diện Dashboard.
-   Kiểm tra sức khỏe hệ thống và trạng thái kết nối DB tại endpoint: **[http://localhost:3000/api/health](http://localhost:3000/api/health)**.
+# Chạy server ở chế độ phát triển
+npm run dev
+```
+
+* **Trang chủ Dashboard**: [http://localhost:3000](http://localhost:3000)
+* **Kiểm tra trạng thái liên kết hệ thống**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+* **Báo cáo kết quả kiểm thử (Walkthrough)**: [`walkthrough.md`](file:///C:/Users/duyng/.gemini/antigravity-ide/brain/a0453682-36b1-4628-8c33-0f375df7f76e/walkthrough.md)
