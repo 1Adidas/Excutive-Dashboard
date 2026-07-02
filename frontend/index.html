@@ -66,6 +66,9 @@
                     <h1>Hệ Thống Tích Hợp Dữ Liệu Lương & Nhân Sự</h1>
                 </div>
                 <div class="header-profile">
+                    <div class="theme-toggle-btn" id="theme-toggle" title="Chuyển chế độ Sáng/Tối">
+                        <i class="fa-solid fa-sun" id="theme-icon"></i>
+                    </div>
                     <div class="notifications-badge" id="alerts-trigger">
                         <i class="fa-solid fa-bell"></i>
                         <span class="badge-count" id="global-badge-count">0</span>
@@ -157,38 +160,6 @@
                             <div class="alerts-list" id="overview-alerts-list">
                                 <!-- List alerts will be generated dynamically -->
                                 <div class="alert-empty">Đang tải cảnh báo...</div>
-                            </div>
-                        </div>
-
-                        <div class="integration-info-panel glass-panel">
-                            <div class="panel-header">
-                                <h3>Sơ đồ tích hợp Tầng hiển thị</h3>
-                            </div>
-                            <div class="architecture-diagram">
-                                <div class="arch-db shadow-sm">
-                                    <i class="fa-solid fa-database text-pink"></i>
-                                    <span>HR_Legacy_DB (Read-Only)</span>
-                                </div>
-                                <div class="arch-db shadow-sm">
-                                    <i class="fa-solid fa-database text-blue"></i>
-                                    <span>Payroll_Legacy_DB (Read-Only)</span>
-                                </div>
-                                <div class="arch-arrow">
-                                    <i class="fa-solid fa-angles-down text-purple"></i>
-                                    <span class="arrow-text">App-level JOIN</span>
-                                </div>
-                                <div class="arch-app shadow-sm">
-                                    <i class="fa-solid fa-gears text-purple"></i>
-                                    <span>Integration Service (Backend Node.js)</span>
-                                </div>
-                                <div class="arch-arrow">
-                                    <i class="fa-solid fa-angles-down text-purple"></i>
-                                    <span class="arrow-text">JSON APIs</span>
-                                </div>
-                                <div class="arch-dashboard shadow-sm">
-                                    <i class="fa-solid fa-display text-emerald"></i>
-                                    <span>Presentation Executive Dashboard</span>
-                                </div>
                             </div>
                         </div>
                     </div>

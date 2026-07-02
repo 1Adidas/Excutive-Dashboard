@@ -26,3 +26,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# UI Design & Documentation (Tài liệu & Bản vẽ thiết kế)
+frontend/wireframe.html
+frontend/css/wireframe.css
+ui_design_documentation.md
+*.h2d

@@ -77,6 +77,30 @@ function setupTabNavigation() {
  * Thiết lập các Event Listener
  */
 function setupEventListeners() {
+    // Toggle Theme Sáng/Tối
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+
+    // Tải cài đặt theme đã lưu
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        themeIcon.className = 'fa-solid fa-moon';
+        setTimeout(() => {
+            if (typeof toggleChartsTheme === 'function') toggleChartsTheme(true);
+        }, 150);
+    }
+
+    themeToggle.addEventListener('click', () => {
+        const isLight = document.body.classList.toggle('light-theme');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        themeIcon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        
+        if (typeof toggleChartsTheme === 'function') {
+            toggleChartsTheme(isLight);
+        }
+    });
+
     // Nút làm mới cảnh báo
     document.getElementById('btn-refresh-alerts').addEventListener('click', loadAlertsData);
 

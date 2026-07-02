@@ -282,3 +282,54 @@ function renderReportVacationChart(canvasId, details) {
         }
     });
 }
+
+/**
+ * Cập nhật màu sắc biểu đồ dựa trên theme sáng/tối
+ * @param {boolean} isLight 
+ */
+function toggleChartsTheme(isLight) {
+    const textColor = isLight ? '#4B5563' : '#9CA3AF';
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.04)';
+    const tooltipBg = isLight ? '#FFFFFF' : '#070A13';
+    const tooltipBorder = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+    const tooltipText = isLight ? '#1F2937' : '#FFF';
+    const doughnutBorder = isLight ? '#FFFFFF' : '#0B0F19';
+
+    Chart.defaults.color = textColor;
+
+    Object.values(charts).forEach(chart => {
+        if (!chart) return;
+
+        // Cập nhật grid và ticks
+        if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach(scale => {
+                if (scale.grid) scale.grid.color = gridColor;
+                if (scale.ticks) scale.ticks.color = textColor;
+                if (scale.title) scale.title.color = textColor;
+            });
+        }
+
+        // Cập nhật legend
+        if (chart.options.plugins && chart.options.plugins.legend) {
+            chart.options.plugins.legend.labels.color = textColor;
+        }
+
+        // Cập nhật tooltip
+        if (chart.options.plugins && chart.options.plugins.tooltip) {
+            chart.options.plugins.tooltip.backgroundColor = tooltipBg;
+            chart.options.plugins.tooltip.titleColor = tooltipText;
+            chart.options.plugins.tooltip.bodyColor = textColor;
+            chart.options.plugins.tooltip.borderColor = tooltipBorder;
+        }
+
+        // Cập nhật viền cho biểu đồ doughnut
+        if (chart.config.type === 'doughnut') {
+            chart.data.datasets.forEach(dataset => {
+                dataset.borderColor = doughnutBorder;
+            });
+        }
+
+        chart.update();
+    });
+}
+
