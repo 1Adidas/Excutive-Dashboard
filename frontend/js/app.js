@@ -9,6 +9,48 @@
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
+/**
+ * Hiển thị Toast Notification
+ * @param {'success'|'error'|'warning'|'info'} type - Loại thông báo
+ * @param {string} title - Tiêu đề
+ * @param {string} message - Nội dung chi tiết
+ * @param {number} duration - Thời gian hiển thị (ms), mặc định 4000
+ */
+function showToast(type, title, message, duration = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const iconMap = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fa-solid ${iconMap[type] || iconMap.info} toast-icon"></i>
+        <div class="toast-body">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+    `;
+
+    container.appendChild(toast);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    const removeToast = () => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 350);
+    };
+
+    closeBtn.addEventListener('click', removeToast);
+    setTimeout(removeToast, duration);
+}
+
 // Lưu trữ dữ liệu tải về để hỗ trợ Drill-down chi tiết tại chỗ
 const appState = {
     incomeReport: null,
@@ -125,7 +167,7 @@ function setupEventListeners() {
 
     // Nút áp dụng bộ lọc CEO
     document.getElementById('btn-submit-filter').addEventListener('click', () => {
-        executeCEOFilter(API_BASE_URL);
+        executeCEOFilter(API_BASE_URL, true);
     });
 
     // Đóng Modal chi tiết và Reset Trạng thái
@@ -183,8 +225,8 @@ function onTabChanged(tabId) {
     } else if (tabId === 'benefits-report') {
         loadBenefitsReport();
     } else if (tabId === 'filter-section') {
-        // Tự động chạy filter lần đầu
-        executeCEOFilter(API_BASE_URL);
+        // Tự động chạy filter lần đầu (không hiện toast)
+        executeCEOFilter(API_BASE_URL, false);
     }
 }
 
@@ -206,11 +248,13 @@ async function checkHealth() {
         } else {
             statusDot.className = 'status-dot offline';
             statusText.textContent = 'Hệ thống lỗi DB';
+            showToast('warning', 'Hệ thống lỗi DB', 'Không thể kết nối đến cơ sở dữ liệu cũ.');
             return true; // Vẫn cho phép thử vì server đang phản hồi
         }
     } catch (error) {
         statusDot.className = 'status-dot offline';
         statusText.textContent = 'Mất kết nối API';
+        showToast('error', 'Lỗi kết nối', 'Không thể liên kết đến máy chủ API.');
         return false;
     }
 }
@@ -957,6 +1001,7 @@ function sendSimulatedEmail(employeeName) {
     const title = document.getElementById('modal-title');
     
     title.innerHTML = `<i class="fa-solid fa-circle-check text-emerald"></i> Đã gửi thư chỉ thị`;
+    showToast('success', 'Đã gửi chỉ thị', `Thư chúc mừng/nhắc nhở đã được gửi tới ${employeeName}.`);
     
     profileView.innerHTML = `
         <div style="text-align: center; padding: 25px 0;">
@@ -1026,6 +1071,7 @@ function simulateExport(format, reportType) {
         
         if (percent >= 100) {
             clearInterval(interval);
+            showToast('success', 'Xuất báo cáo thành công', `Đã tải xuống file báo cáo ${format.toUpperCase()}.`);
             profileView.innerHTML = `
                 <div style="text-align: center; padding: 20px;">
                     <i class="fa-solid fa-circle-check text-emerald" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
@@ -1084,6 +1130,7 @@ function setupSSESync() {
         };
     } catch (e) {
         console.error('[SSE] Không thể cấu hình SSE cho CEO Dashboard:', e);
+        showToast('warning', 'Lỗi đồng bộ SSE', 'Không thể thiết lập kênh lắng nghe cập nhật thời gian thực.');
     }
 }
 
@@ -1093,3 +1140,4 @@ window.triggerAlertAction = triggerAlertAction;
 window.sendSimulatedEmail = sendSimulatedEmail;
 window.simulateExport = simulateExport;
 window.showDrilldown = showDrilldown;
+window.showToast = showToast;

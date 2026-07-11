@@ -11,6 +11,48 @@ const API_BASE_URL = 'http://localhost:3000/api';
 let allEmployees = [];
 let editingEmployeeId = null;
 
+/**
+ * Hiển thị Toast Notification
+ * @param {'success'|'error'|'warning'|'info'} type - Loại thông báo
+ * @param {string} title - Tiêu đề
+ * @param {string} message - Nội dung chi tiết
+ * @param {number} duration - Thời gian hiển thị (ms), mặc định 4000
+ */
+function showToast(type, title, message, duration = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const iconMap = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fa-solid ${iconMap[type] || iconMap.info} toast-icon"></i>
+        <div class="toast-body">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+    `;
+
+    container.appendChild(toast);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    const removeToast = () => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 350);
+    };
+
+    closeBtn.addEventListener('click', removeToast);
+    setTimeout(removeToast, duration);
+}
+
 // Khởi chạy khi DOM đã sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
     initPayrollApp();
@@ -84,10 +126,11 @@ async function loadEmployees() {
             
             renderPayrollTable();
         } else {
-            console.error('Không thể tải nhân viên:', result.error);
+            showToast('error', 'Lỗi tải dữ liệu', result.error || 'Không thể tải danh sách lương.');
         }
     } catch (e) {
         console.error('Lỗi kết nối API tải dữ liệu:', e);
+        showToast('error', 'Mất kết nối', 'Không thể kết nối máy chủ API. Vui lòng chạy server Node.js.');
         const tbody = document.querySelector('#payroll-employee-table tbody');
         tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Không thể kết nối máy chủ API. Vui lòng chạy server Node.js.</td></tr>';
     }
@@ -120,7 +163,7 @@ function renderPayrollTable(filterQuery = '') {
         tbody.innerHTML += `
             <tr>
                 <td><strong>#${emp.Employee_ID}</strong></td>
-                <td><strong>${emp.First_Name} ${emp.Last_Name}</strong></td>
+                <td><strong>${emp.Last_Name} ${emp.First_Name}</strong></td>
                 <td><span class="badge-dept" style="background:rgba(16, 185, 129, 0.1); color:#10b981; border: 1px solid rgba(16, 185, 129, 0.2);">${emp.Department}</span></td>
                 <td>${emp.Employment_Type}</td>
                 <td>$${emp.Previous_Year_Income.toLocaleString()}</td>
@@ -211,15 +254,15 @@ async function handleFormSubmit(event) {
 
         if (result.success) {
             closePayrollModal();
-            // Load lại dữ liệu qua sự kiện SSE phát tới
+            showToast('success', 'Cập nhật thành công', `Bảng lương của nhân viên #${editingEmployeeId} đã được điều chỉnh.`);
         } else {
-            alert(`Lỗi khi cập nhật bảng lương: ${result.error}`);
+            showToast('error', 'Cập nhật thất bại', result.error || 'Lỗi khi cập nhật bảng lương.');
             dot.className = 'status-dot online';
             text.textContent = 'Đồng bộ: Sẵn sàng';
         }
     } catch (e) {
         console.error(e);
-        alert('Mất kết nối tới API Máy chủ.');
+        showToast('error', 'Mất kết nối', 'Không thể kết nối tới API Máy chủ.');
         dot.className = 'status-dot online';
         text.textContent = 'Đồng bộ: Sẵn sàng';
     }
@@ -257,7 +300,7 @@ function setupSSESync() {
                 text.textContent = 'Đang đồng bộ...';
                 
                 await loadEmployees();
-                
+
                 setTimeout(() => {
                     dot.className = 'status-dot online';
                     text.textContent = 'Đồng bộ: Sẵn sàng';
@@ -268,8 +311,10 @@ function setupSSESync() {
         console.error('[SSE] Không thể cấu hình Server-Sent Events:', e);
         dot.className = 'status-dot offline';
         text.textContent = 'Đồng bộ: Không khả dụng';
+        showToast('warning', 'SSE không khả dụng', 'Không thể thiết lập kênh đồng bộ thời gian thực.');
     }
 }
 
 // Gắn hàm điều chỉnh lương vào window
 window.editPayroll = editPayroll;
+window.showToast = showToast;

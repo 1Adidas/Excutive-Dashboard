@@ -12,10 +12,95 @@ let allEmployees = [];
 let isEditMode = false;
 let editingEmployeeId = null;
 
+/**
+ * Định dạng ngày từ ISO/yyyy-mm-dd sang dd/mm/yyyy để hiển thị trên input
+ */
+function formatDateToInput(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+}
+
+/**
+ * Định dạng ngày từ dd/mm/yyyy sang yyyy-mm-dd để gửi lên API
+ */
+function parseInputToDate(dmyString) {
+    if (!dmyString) return '';
+    const parts = dmyString.split('/');
+    if (parts.length !== 3) return '';
+    const dd = parts[0].padStart(2, '0');
+    const mm = parts[1].padStart(2, '0');
+    const yyyy = parts[2];
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Hiển thị Toast Notification
+ * @param {'success'|'error'|'warning'|'info'} type - Loại thông báo
+ * @param {string} title - Tiêu đề
+ * @param {string} message - Nội dung chi tiết
+ * @param {number} duration - Thời gian hiển thị (ms), mặc định 4000
+ */
+function showToast(type, title, message, duration = 4000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const iconMap = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fa-solid ${iconMap[type] || iconMap.info} toast-icon"></i>
+        <div class="toast-body">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+    `;
+
+    container.appendChild(toast);
+
+    const closeBtn = toast.querySelector('.toast-close');
+    const removeToast = () => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 350);
+    };
+
+    closeBtn.addEventListener('click', removeToast);
+    setTimeout(removeToast, duration);
+}
+
 // Khởi chạy khi DOM đã sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
     initHRApp();
 });
+
+let dobPicker, hireDatePicker, weddingAnnivPicker;
+
+/**
+ * Khởi tạo Flatpickr datepickers
+ */
+function initDatePickers() {
+    const config = {
+        dateFormat: "d/m/Y",
+        allowInput: true, // Cho phép gõ trực tiếp
+        locale: "vn"      // Tiếng Việt
+    };
+    
+    dobPicker = flatpickr("#emp-dob", config);
+    hireDatePicker = flatpickr("#emp-hiredate", config);
+    weddingAnnivPicker = flatpickr("#emp-wedding", config);
+}
 
 /**
  * Khởi tạo hệ thống HR
@@ -23,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initHRApp() {
     setupTheme();
     setupEventListeners();
+    initDatePickers();
     setupSSESync();
     await loadEmployees();
 }
@@ -103,10 +189,11 @@ async function loadEmployees() {
             
             renderEmployeeTable();
         } else {
-            console.error('Không thể tải nhân viên:', result.error);
+            showToast('error', 'Lỗi tải dữ liệu', result.error || 'Không thể tải danh sách nhân viên.');
         }
     } catch (e) {
         console.error('Lỗi kết nối API tải nhân viên:', e);
+        showToast('error', 'Mất kết nối', 'Không thể kết nối máy chủ API. Vui lòng chạy server Node.js.');
         const tbody = document.querySelector('#hr-employee-table tbody');
         tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Không thể kết nối máy chủ API. Vui lòng chạy server Node.js.</td></tr>';
     }
@@ -139,7 +226,7 @@ function renderEmployeeTable(filterQuery = '') {
         tbody.innerHTML += `
             <tr>
                 <td><strong>#${emp.Employee_ID}</strong></td>
-                <td><strong>${emp.First_Name} ${emp.Last_Name}</strong></td>
+                <td><strong>${emp.Last_Name} ${emp.First_Name}</strong></td>
                 <td><span class="badge-dept">${emp.Department}</span></td>
                 <td>${emp.Gender === 'Male' ? 'Nam' : (emp.Gender === 'Female' ? 'Nữ' : 'Khác')}</td>
                 <td>${dob}</td>
@@ -172,6 +259,11 @@ function openEmployeeModal(editMode = false, empId = null) {
     isEditMode = editMode;
     editingEmployeeId = empId;
 
+    // Reset Flatpickr
+    if (dobPicker) dobPicker.clear();
+    if (hireDatePicker) hireDatePicker.clear();
+    if (weddingAnnivPicker) weddingAnnivPicker.clear();
+
     const idInput = document.getElementById('emp-id');
     const payrollHeader = document.getElementById('payroll-fields-header');
     const payrollGrid1 = document.getElementById('payroll-fields-grid');
@@ -197,19 +289,21 @@ function openEmployeeModal(editMode = false, empId = null) {
             document.getElementById('emp-dept').value = emp.Department;
             document.getElementById('emp-gender').value = emp.Gender;
             document.getElementById('emp-ethnicity').value = emp.Ethnicity;
-            document.getElementById('emp-dob').value = emp.Date_of_Birth ? emp.Date_of_Birth.slice(0, 10) : '';
-            document.getElementById('emp-hiredate').value = emp.Hire_Date ? emp.Hire_Date.slice(0, 10) : '';
+            
+            if (dobPicker && emp.Date_of_Birth) dobPicker.setDate(formatDateToInput(emp.Date_of_Birth), false, "d/m/Y");
+            if (hireDatePicker && emp.Hire_Date) hireDatePicker.setDate(formatDateToInput(emp.Hire_Date), false, "d/m/Y");
+            
             document.getElementById('emp-marital').value = emp.Marital_Status;
             
             const weddingInput = document.getElementById('emp-wedding');
             if (emp.Marital_Status === 'Married') {
                 weddingInput.disabled = false;
                 weddingInput.required = true;
-                weddingInput.value = emp.Wedding_Anniversary ? emp.Wedding_Anniversary.slice(0, 10) : '';
+                if (weddingAnnivPicker && emp.Wedding_Anniversary) weddingAnnivPicker.setDate(formatDateToInput(emp.Wedding_Anniversary), false, "d/m/Y");
             } else {
                 weddingInput.disabled = true;
                 weddingInput.required = false;
-                weddingInput.value = '';
+                if (weddingAnnivPicker) weddingAnnivPicker.clear();
             }
         }
     } else {
@@ -263,16 +357,15 @@ async function deleteEmployee(employeeId) {
         const result = await response.json();
 
         if (result.success) {
-            // Không cần reload trực tiếp, SSE sẽ phát tín hiệu kích hoạt loadEmployees()
-            console.log(`Đã xóa thành công NV #${employeeId}`);
+            showToast('success', 'Xóa thành công', `Nhân viên #${employeeId} đã được xóa khỏi hệ thống HR và Payroll.`);
         } else {
-            alert(`Lỗi khi xóa nhân viên: ${result.error}`);
+            showToast('error', 'Xóa thất bại', result.error || 'Không thể xóa nhân viên.');
             dot.className = 'status-dot online';
             text.textContent = 'Đồng bộ: Sẵn sàng';
         }
     } catch (e) {
         console.error(e);
-        alert('Lỗi kết nối mạng khi thực hiện xóa.');
+        showToast('error', 'Lỗi kết nối', 'Mất kết nối mạng khi thực hiện xóa.');
         dot.className = 'status-dot online';
         text.textContent = 'Đồng bộ: Sẵn sàng';
     }
@@ -293,10 +386,10 @@ async function handleFormSubmit(event) {
     const Department = document.getElementById('emp-dept').value;
     const Gender = document.getElementById('emp-gender').value;
     const Ethnicity = document.getElementById('emp-ethnicity').value.trim();
-    const Date_of_Birth = document.getElementById('emp-dob').value;
-    const Hire_Date = document.getElementById('emp-hiredate').value;
+    const Date_of_Birth = parseInputToDate(document.getElementById('emp-dob').value.trim());
+    const Hire_Date = parseInputToDate(document.getElementById('emp-hiredate').value.trim());
     const Marital_Status = document.getElementById('emp-marital').value;
-    const Wedding_Anniversary = document.getElementById('emp-wedding').value || null;
+    const Wedding_Anniversary = parseInputToDate(document.getElementById('emp-wedding').value.trim()) || null;
 
     const payload = {
         Employee_ID,
@@ -344,15 +437,19 @@ async function handleFormSubmit(event) {
 
         if (result.success) {
             closeEmployeeModal();
-            // Việc load lại bảng sẽ tự động diễn ra nhờ nhận tín hiệu qua SSE
+            if (isEditMode) {
+                showToast('success', 'Cập nhật thành công', `Hồ sơ nhân viên #${editingEmployeeId} đã được cập nhật.`);
+            } else {
+                showToast('success', 'Thêm mới thành công', `Nhân viên #${Employee_ID} đã được thêm vào hệ thống HR và Payroll.`);
+            }
         } else {
-            alert(`Lỗi ghi nhận giao dịch: ${result.error}`);
+            showToast('error', 'Giao dịch thất bại', result.error || 'Không thể ghi nhận giao dịch.');
             dot.className = 'status-dot online';
             text.textContent = 'Đồng bộ: Sẵn sàng';
         }
     } catch (e) {
         console.error(e);
-        alert('Mất kết nối tới API Máy chủ.');
+        showToast('error', 'Mất kết nối', 'Không thể kết nối tới API Máy chủ.');
         dot.className = 'status-dot online';
         text.textContent = 'Đồng bộ: Sẵn sàng';
     }
@@ -390,7 +487,7 @@ function setupSSESync() {
                 text.textContent = 'Đang đồng bộ...';
                 
                 await loadEmployees();
-                
+
                 setTimeout(() => {
                     dot.className = 'status-dot online';
                     text.textContent = 'Đồng bộ: Sẵn sàng';
@@ -401,9 +498,11 @@ function setupSSESync() {
         console.error('[SSE] Không thể cấu hình Server-Sent Events:', e);
         dot.className = 'status-dot offline';
         text.textContent = 'Đồng bộ: Không khả dụng';
+        showToast('warning', 'SSE không khả dụng', 'Không thể thiết lập kênh đồng bộ thời gian thực.');
     }
 }
 
 // Gắn các hàm gọi từ mã HTML nội tuyến
 window.editEmployee = editEmployee;
 window.deleteEmployee = deleteEmployee;
+window.showToast = showToast;

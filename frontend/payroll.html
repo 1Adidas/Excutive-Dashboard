@@ -84,13 +84,6 @@
                 <a href="#" class="nav-item active">
                     <i class="fa-solid fa-money-check-dollar"></i> Quản lý lương & phép
                 </a>
-                <div class="divider" style="margin: 15px 0; border-color: rgba(255,255,255,0.05);"></div>
-                <a href="index.html" class="nav-item">
-                    <i class="fa-solid fa-chart-line"></i> CEO Dashboard
-                </a>
-                <a href="hr.html" class="nav-item">
-                    <i class="fa-solid fa-users-gear"></i> HR System
-                </a>
             </nav>
             
             <div class="sidebar-footer">
@@ -230,13 +223,16 @@
                     </div>
                 </div>
                 
-                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px;">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-outline-warning" id="btn-cancel-form">Hủy bỏ</button>
                     <button type="submit" class="btn btn-payroll-primary">Cập nhật bảng lương</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
 
     <!-- Logic Script imports -->
     <script src="js/payroll.js"></script>

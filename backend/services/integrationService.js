@@ -42,7 +42,7 @@ async function getMergedEmployeeData() {
             Employee_ID: emp.Employee_ID,
             First_Name: emp.First_Name,
             Last_Name: emp.Last_Name,
-            Full_Name: `${emp.First_Name} ${emp.Last_Name}`,
+            Full_Name: `${emp.Last_Name} ${emp.First_Name}`,
             Department: emp.Department,
             Hire_Date: emp.Hire_Date,
             Date_of_Birth: emp.Date_of_Birth,

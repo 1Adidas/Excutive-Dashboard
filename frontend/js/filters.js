@@ -29,7 +29,7 @@ function escapeHTML(str) {
  * Thực thi lọc nhân viên và cập nhật giao diện kết quả
  * @param {string} apiBaseUrl - Cấu hình base URL của API
  */
-async function executeCEOFilter(apiBaseUrl) {
+async function executeCEOFilter(apiBaseUrl, userInitiated = false) {
     const searchInput = document.getElementById('filter-search');
     const amountInput = document.getElementById('filter-amount');
     const deptSelect = document.getElementById('filter-dept');
@@ -89,6 +89,14 @@ async function executeCEOFilter(apiBaseUrl) {
 
         // Cập nhật số lượng kết quả
         countText.innerHTML = `<i class="fa-solid fa-people-group text-purple"></i> Kết quả lọc (${descText}): Tìm thấy <strong>${data.total_matching}</strong> nhân sự thỏa mãn`;
+
+        if (typeof showToast === 'function' && userInitiated) {
+            if (data.total_matching > 0) {
+                showToast('success', 'Đã lọc dữ liệu', `Tìm thấy ${data.total_matching} nhân viên phù hợp.`);
+            } else {
+                showToast('warning', 'Không tìm thấy kết quả', 'Không có nhân viên nào phù hợp tiêu chí lọc.');
+            }
+        }
 
         if (data.total_matching === 0) {
             resultsGrid.innerHTML = `
@@ -150,6 +158,9 @@ async function executeCEOFilter(apiBaseUrl) {
 
     } catch (error) {
         console.error('❌ Lỗi thực thi filter:', error);
+        if (typeof showToast === 'function') {
+            showToast('error', 'Lỗi truy vấn bộ lọc', error.message);
+        }
         resultsGrid.innerHTML = `
             <div class="alert-card critical" style="margin-top: 20px;">
                 <span class="alert-card-icon">❌</span>

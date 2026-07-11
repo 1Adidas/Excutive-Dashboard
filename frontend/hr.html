@@ -15,6 +15,11 @@
     
     <!-- Stylesheet chính -->
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Flatpickr Datepicker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    
     <style>
         /* Tùy chỉnh màu sắc thương hiệu của HR: Pink/Magenta accents */
         :root {
@@ -75,13 +80,6 @@
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active">
                     <i class="fa-solid fa-users-gear"></i> Quản lý nhân sự
-                </a>
-                <div class="divider" style="margin: 15px 0; border-color: rgba(255,255,255,0.05);"></div>
-                <a href="index.html" class="nav-item">
-                    <i class="fa-solid fa-chart-line"></i> CEO Dashboard
-                </a>
-                <a href="payroll.html" class="nav-item">
-                    <i class="fa-solid fa-credit-card"></i> Payroll System
                 </a>
             </nav>
             
@@ -223,12 +221,12 @@
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                         <div class="control-group" style="margin: 0;">
-                            <label for="emp-dob">Ngày sinh:</label>
-                            <input type="date" id="emp-dob" required>
+                            <label for="emp-dob">Ngày sinh (dd/mm/yyyy):</label>
+                            <input type="text" id="emp-dob" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" required>
                         </div>
                         <div class="control-group" style="margin: 0;">
-                            <label for="emp-hiredate">Ngày tuyển dụng:</label>
-                            <input type="date" id="emp-hiredate" required>
+                            <label for="emp-hiredate">Ngày tuyển dụng (dd/mm/yyyy):</label>
+                            <input type="text" id="emp-hiredate" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" required>
                         </div>
                     </div>
 
@@ -243,8 +241,8 @@
                             </select>
                         </div>
                         <div class="control-group" style="margin: 0;">
-                            <label for="emp-wedding">Ngày kỷ niệm cưới (nếu có):</label>
-                            <input type="date" id="emp-wedding" disabled>
+                            <label for="emp-wedding">Ngày kỷ niệm cưới (dd/mm/yyyy, nếu có):</label>
+                            <input type="text" id="emp-wedding" placeholder="dd/mm/yyyy" pattern="\d{2}/\d{2}/\d{4}" disabled>
                         </div>
                     </div>
 
@@ -288,13 +286,20 @@
                     </div>
                 </div>
                 
-                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px;">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-outline-warning" id="btn-cancel-form">Hủy bỏ</button>
                     <button type="submit" class="btn btn-hr-primary" id="btn-save-employee">Lưu nhân sự</button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
 
     <!-- Logic Script imports -->
     <script src="js/hr.js"></script>
