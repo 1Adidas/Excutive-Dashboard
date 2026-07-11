@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Lương & Phúc Lợi (Payroll Legacy) - Tích Hợp Đồng Bộ</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheet chính -->
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Tùy chỉnh màu sắc thương hiệu của Payroll: Emerald Green accents */
+        :root {
+            --payroll-accent: #10b981;
+            --payroll-accent-glow: rgba(16, 185, 129, 0.15);
+        }
+        .sidebar-logo .logo-icon {
+            color: var(--payroll-accent);
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .btn-payroll-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-payroll-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            filter: brightness(1.1);
+        }
+        .nav-item.active {
+            border-left: 4px solid var(--payroll-accent) !important;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%) !important;
+            color: var(--payroll-accent) !important;
+        }
+        .nav-item.active i {
+            color: var(--payroll-accent) !important;
+        }
+        .status-dot.syncing {
+            background-color: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 1s infinite alternate;
+        }
+        .badge-payroll {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-shareholder {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-sack-dollar logo-icon"></i>
+                <h2>Exec Payroll</h2>
+                <span class="logo-sub">Legacy Payroll System</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-money-check-dollar"></i> Quản lý lương & phép
+                </a>
+                <div class="divider" style="margin: 15px 0; border-color: rgba(255,255,255,0.05);"></div>
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i> CEO Dashboard
+                </a>
+                <a href="hr.html" class="nav-item">
+                    <i class="fa-solid fa-users-gear"></i> HR System
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot online" id="sync-status-dot"></span>
+                    <span class="status-text" id="sync-status-text">Đồng bộ: Sẵn sàng</span>
+                </div>
+                <div class="integration-method">
+                    <i class="fa-solid fa-rotate text-purple"></i> SSE Real-time Sync
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <h1>Hệ Thống Quản Lý Lương & Phúc Lợi (Payroll Legacy)</h1>
+                </div>
+                <div class="header-profile">
+                    <div class="theme-toggle-btn" id="theme-toggle" title="Chuyển chế độ Sáng/Tối">
+                        <i class="fa-solid fa-sun" id="theme-icon"></i>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="profile-info">
+                        <span class="profile-role">Hệ thống thành viên</span>
+                        <span class="profile-name">Payroll Admin</span>
+                    </div>
+                    <div class="profile-avatar" style="background: var(--payroll-accent-glow); color: var(--payroll-accent);">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-body">
+                <div class="table-card glass-panel" style="margin-top: 0;">
+                    <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <h3>Bảng phân bổ lương & gói phúc lợi</h3>
+                            <p class="text-secondary" style="font-size: 0.8rem; margin-top: 4px;">Cập nhật thông tin thu nhập, gói phúc lợi và cổ đông tại Payroll_Legacy_DB. Đồng bộ chéo thời gian thực sang Dashboard CEO.</p>
+                        </div>
+                        <div class="input-with-icon">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="payroll-search-input" placeholder="Tìm tên hoặc mã nhân viên..." style="width: 250px;">
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+                        <table class="custom-table" id="payroll-employee-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã số</th>
+                                    <th>Họ Tên</th>
+                                    <th>Phòng ban</th>
+                                    <th>Loại hình</th>
+                                    <th>Lương năm ngoái</th>
+                                    <th>Lương năm nay</th>
+                                    <th>Cổ đông</th>
+                                    <th>Gói phúc lợi</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="9" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- EDIT PAYROLL MODAL -->
+    <div class="modal-backdrop" id="payroll-modal" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 600px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(16, 185, 129, 0.15);">
+                <h3><i class="fa-solid fa-money-check-dollar text-emerald"></i> Điều Chỉnh Lương & Phúc Lợi</h3>
+                <button class="close-modal" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="payroll-form">
+                <div class="modal-body">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--payroll-accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-id-card"></i> Thông Tin Hồ Sơ Nhân Viên
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div>
+                            <span class="text-secondary" style="font-size: 0.75rem; display: block;">Mã số nhân viên</span>
+                            <strong id="payroll-emp-id-text" style="font-size: 1.1rem; color: white;">#1001</strong>
+                        </div>
+                        <div>
+                            <span class="text-secondary" style="font-size: 0.75rem; display: block;">Họ và Tên</span>
+                            <strong id="payroll-emp-name-text" style="font-size: 1.1rem; color: white;">Nguyen Van An</strong>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--payroll-accent); margin-bottom: 15px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-money-bill-wave"></i> Thu Nhập & Phúc Lợi (Ghi vào Payroll Database)
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="pay-income">Lương năm nay (Current Year Income, USD):</label>
+                            <input type="number" id="pay-income" required min="0" placeholder="Ví dụ: 80000">
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="pay-prev-income">Lương năm ngoái (Previous Year Income, USD):</label>
+                            <input type="number" id="pay-prev-income" required min="0" placeholder="Ví dụ: 75000">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="pay-type">Loại hình làm việc:</label>
+                            <select id="pay-type" class="custom-select" required>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="pay-plan">Gói phúc lợi:</label>
+                            <select id="pay-plan" class="custom-select" required>
+                                <option value="Standard">Standard</option>
+                                <option value="Gold">Gold</option>
+                                <option value="Platinum">Platinum</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="control-group" style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="pay-shareholder" style="width: auto; cursor: pointer;">
+                        <label for="pay-shareholder" style="cursor: pointer; margin: 0; user-select: none;">Nhân viên này sở hữu cổ phần công ty (Cổ đông)?</label>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px;">
+                    <button type="button" class="btn btn-outline-warning" id="btn-cancel-form">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-payroll-primary">Cập nhật bảng lương</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logic Script imports -->
+    <script src="js/payroll.js"></script>
+</body>
+</html>

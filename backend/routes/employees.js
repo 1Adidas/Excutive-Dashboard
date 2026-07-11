@@ -58,4 +58,118 @@ router.get('/filter', async (req, res) => {
     }
 });
 
+/**
+ * Thêm mới nhân viên tích hợp (HR & Payroll)
+ * POST /api/employees
+ */
+router.post('/', async (req, res) => {
+    try {
+        const data = req.body;
+        if (!data.Employee_ID || !data.First_Name || !data.Last_Name || !data.Department || !data.Hire_Date || !data.Date_of_Birth) {
+            return res.status(400).json({
+                success: false,
+                error: 'Thiếu thông tin nhân sự bắt buộc'
+            });
+        }
+
+        // Thực hiện ghi thông qua dịch vụ tích hợp
+        await integrationService.createIntegratedEmployee(data);
+
+        // Phát tín hiệu cập nhật qua SSE
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) {
+            broadcastUpdate('create_employee', { Employee_ID: parseInt(data.Employee_ID) });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: `Thêm nhân sự mới #${data.Employee_ID} thành công.`,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Lỗi thêm nhân sự:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Không thể thêm nhân sự mới',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * Cập nhật thông tin nhân sự
+ * PUT /api/employees/:id
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        const employeeId = parseInt(req.params.id);
+        if (isNaN(employeeId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mã nhân viên không hợp lệ'
+            });
+        }
+
+        // Thực hiện cập nhật
+        await integrationService.updateIntegratedEmployee(employeeId, req.body);
+
+        // Phát tín hiệu cập nhật qua SSE
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) {
+            broadcastUpdate('update_employee', { Employee_ID: employeeId });
+        }
+
+        res.json({
+            success: true,
+            message: `Cập nhật nhân viên #${employeeId} thành công.`,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Lỗi cập nhật nhân sự:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Không thể cập nhật thông tin nhân sự',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * Xóa nhân viên khỏi cả 2 DB
+ * DELETE /api/employees/:id
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        const employeeId = parseInt(req.params.id);
+        if (isNaN(employeeId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mã nhân viên không hợp lệ'
+            });
+        }
+
+        // Thực hiện xóa
+        await integrationService.deleteIntegratedEmployee(employeeId);
+
+        // Phát tín hiệu cập nhật qua SSE
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) {
+            broadcastUpdate('delete_employee', { Employee_ID: employeeId });
+        }
+
+        res.json({
+            success: true,
+            message: `Xóa nhân viên #${employeeId} thành công.`,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('❌ Lỗi xóa nhân sự:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Không thể xóa nhân sự',
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;

@@ -182,11 +182,101 @@ async function getVacationStatsByDepartment() {
     return result.recordset;
 }
 
+/**
+ * Thêm nhân viên mới (HR)
+ * @param {Object} emp - Dữ liệu nhân viên
+ */
+async function createEmployee(emp) {
+    const pool = await getHRPool();
+    await pool.request()
+        .input('Employee_ID', emp.Employee_ID)
+        .input('First_Name', emp.First_Name)
+        .input('Last_Name', emp.Last_Name)
+        .input('Department', emp.Department)
+        .input('Hire_Date', emp.Hire_Date)
+        .input('Date_of_Birth', emp.Date_of_Birth)
+        .input('Gender', emp.Gender)
+        .input('Ethnicity', emp.Ethnicity)
+        .input('Vacation_Days_Used', emp.Vacation_Days_Used || 0)
+        .input('Marital_Status', emp.Marital_Status || 'Single')
+        .input('Wedding_Anniversary', emp.Wedding_Anniversary || null)
+        .query(`
+            INSERT INTO dbo.Employees (
+                Employee_ID, First_Name, Last_Name, Department, Hire_Date, 
+                Date_of_Birth, Gender, Ethnicity, Vacation_Days_Used, 
+                Marital_Status, Wedding_Anniversary
+            ) VALUES (
+                @Employee_ID, @First_Name, @Last_Name, @Department, @Hire_Date, 
+                @Date_of_Birth, @Gender, @Ethnicity, @Vacation_Days_Used, 
+                @Marital_Status, @Wedding_Anniversary
+            )
+        `);
+}
+
+/**
+ * Cập nhật thông tin nhân sự
+ * @param {number} employeeId - ID nhân viên
+ * @param {Object} emp - Thông tin cập nhật
+ */
+async function updateEmployee(employeeId, emp) {
+    const pool = await getHRPool();
+    // Trước hết lấy dữ liệu hiện tại để merge
+    const current = await pool.request()
+        .input('Employee_ID', employeeId)
+        .query('SELECT * FROM dbo.Employees WHERE Employee_ID = @Employee_ID');
+    const cur = current.recordset[0] || {};
+
+    await pool.request()
+        .input('Employee_ID', employeeId)
+        .input('First_Name', emp.First_Name !== undefined ? emp.First_Name : cur.First_Name)
+        .input('Last_Name', emp.Last_Name !== undefined ? emp.Last_Name : cur.Last_Name)
+        .input('Department', emp.Department !== undefined ? emp.Department : cur.Department)
+        .input('Hire_Date', emp.Hire_Date !== undefined ? emp.Hire_Date : cur.Hire_Date)
+        .input('Date_of_Birth', emp.Date_of_Birth !== undefined ? emp.Date_of_Birth : cur.Date_of_Birth)
+        .input('Gender', emp.Gender !== undefined ? emp.Gender : cur.Gender)
+        .input('Ethnicity', emp.Ethnicity !== undefined ? emp.Ethnicity : cur.Ethnicity)
+        .input('Vacation_Days_Used', emp.Vacation_Days_Used !== undefined ? emp.Vacation_Days_Used : cur.Vacation_Days_Used)
+        .input('Marital_Status', emp.Marital_Status !== undefined ? emp.Marital_Status : cur.Marital_Status)
+        .input('Wedding_Anniversary', emp.Wedding_Anniversary !== undefined ? emp.Wedding_Anniversary : cur.Wedding_Anniversary)
+        .query(`
+            UPDATE dbo.Employees
+            SET 
+                First_Name = @First_Name,
+                Last_Name = @Last_Name,
+                Department = @Department,
+                Hire_Date = @Hire_Date,
+                Date_of_Birth = @Date_of_Birth,
+                Gender = @Gender,
+                Ethnicity = @Ethnicity,
+                Vacation_Days_Used = @Vacation_Days_Used,
+                Marital_Status = @Marital_Status,
+                Wedding_Anniversary = @Wedding_Anniversary
+            WHERE Employee_ID = @Employee_ID
+        `);
+}
+
+/**
+ * Xóa nhân viên
+ * @param {number} employeeId - ID nhân viên
+ */
+async function deleteEmployee(employeeId) {
+    const pool = await getHRPool();
+    await pool.request()
+        .input('Employee_ID', employeeId)
+        .query(`
+            DELETE FROM dbo.Employees
+            WHERE Employee_ID = @Employee_ID
+        `);
+}
+
 module.exports = {
     getAllEmployees,
     getEmployeesByDepartment,
     getEmployeesByBirthdayMonth,
     getEmployeesExceedingVacation,
     getUpcomingAnniversaries,
-    getVacationStatsByDepartment
+    getVacationStatsByDepartment,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee
 };

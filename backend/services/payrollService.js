@@ -110,10 +110,77 @@ async function getBenefitStats() {
     return result.recordset;
 }
 
+/**
+ * Thêm mới bản ghi lương (khi thêm nhân viên mới)
+ * @param {Object} payroll - Dữ liệu lương
+ */
+async function createPayroll(payroll) {
+    const pool = await getPayrollPool();
+    await pool.request()
+        .input('Employee_ID', sql.Int, payroll.Employee_ID)
+        .input('Current_Year_Income', sql.Decimal(15, 2), payroll.Current_Year_Income || 0)
+        .input('Previous_Year_Income', sql.Decimal(15, 2), payroll.Previous_Year_Income || 0)
+        .input('Shareholder_Status', sql.Bit, payroll.Shareholder_Status ? 1 : 0)
+        .input('Employment_Type', sql.NVarChar(20), payroll.Employment_Type || 'Full-time')
+        .input('Benefit_Plan', sql.NVarChar(50), payroll.Benefit_Plan || 'Standard')
+        .query(`
+            INSERT INTO dbo.Payroll (
+                Employee_ID, Current_Year_Income, Previous_Year_Income, 
+                Shareholder_Status, Employment_Type, Benefit_Plan
+            ) VALUES (
+                @Employee_ID, @Current_Year_Income, @Previous_Year_Income, 
+                @Shareholder_Status, @Employment_Type, @Benefit_Plan
+            )
+        `);
+}
+
+/**
+ * Cập nhật thông tin lương
+ * @param {number} employeeId - ID nhân viên
+ * @param {Object} payroll - Dữ liệu cập nhật
+ */
+async function updatePayroll(employeeId, payroll) {
+    const pool = await getPayrollPool();
+    await pool.request()
+        .input('Employee_ID', sql.Int, employeeId)
+        .input('Current_Year_Income', sql.Decimal(15, 2), payroll.Current_Year_Income)
+        .input('Previous_Year_Income', sql.Decimal(15, 2), payroll.Previous_Year_Income)
+        .input('Shareholder_Status', sql.Bit, payroll.Shareholder_Status ? 1 : 0)
+        .input('Employment_Type', sql.NVarChar(20), payroll.Employment_Type)
+        .input('Benefit_Plan', sql.NVarChar(50), payroll.Benefit_Plan)
+        .query(`
+            UPDATE dbo.Payroll
+            SET 
+                Current_Year_Income = @Current_Year_Income,
+                Previous_Year_Income = @Previous_Year_Income,
+                Shareholder_Status = @Shareholder_Status,
+                Employment_Type = @Employment_Type,
+                Benefit_Plan = @Benefit_Plan
+            WHERE Employee_ID = @Employee_ID
+        `);
+}
+
+/**
+ * Xóa bản ghi lương
+ * @param {number} employeeId - ID nhân viên
+ */
+async function deletePayroll(employeeId) {
+    const pool = await getPayrollPool();
+    await pool.request()
+        .input('Employee_ID', sql.Int, employeeId)
+        .query(`
+            DELETE FROM dbo.Payroll
+            WHERE Employee_ID = @Employee_ID
+        `);
+}
+
 module.exports = {
     getAllPayroll,
     getPayrollByEmployeeId,
     getEmployeesAboveIncome,
     getIncomeStats,
-    getBenefitStats
+    getBenefitStats,
+    createPayroll,
+    updatePayroll,
+    deletePayroll
 };

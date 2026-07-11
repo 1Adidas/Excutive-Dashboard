@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initApp() {
     setupTabNavigation();
     setupEventListeners();
+    setupSSESync(); // Thiết lập đồng bộ thời gian thực SSE
     
     // Khởi tạo các biểu đồ trống ban đầu
     initOverviewIncomeChart('incomeDeptChart');
@@ -1035,6 +1036,55 @@ function simulateExport(format, reportType) {
             `;
         }
     }, 100);
+}
+
+/**
+ * Cấu hình Server-Sent Events (SSE) để đồng bộ dữ liệu thời gian thực cho CEO Dashboard
+ */
+function setupSSESync() {
+    const dot = document.getElementById('api-status-dot');
+    const text = document.getElementById('api-status-text');
+
+    try {
+        const eventSource = new EventSource(`${API_BASE_URL}/updates`);
+
+        eventSource.onopen = () => {
+            if (dot && text) {
+                dot.className = 'status-dot online';
+                text.textContent = 'Hệ thống trực tuyến';
+            }
+            console.log('[SSE] CEO Dashboard đã kết nối với máy chủ đồng bộ thời gian thực.');
+        };
+
+        eventSource.onerror = (err) => {
+            if (dot && text) {
+                dot.className = 'status-dot offline';
+                text.textContent = 'Đồng bộ: Lỗi kết nối';
+            }
+            console.warn('[SSE] CEO Dashboard mất kết nối. Đang chờ kết nối lại...');
+        };
+
+        eventSource.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'REFRESH') {
+                console.log(`[SSE] CEO Dashboard nhận tín hiệu làm mới dữ liệu từ hành động: ${data.action}`);
+                
+                // Lưu giữ tab hiện tại để tải lại đúng phần dữ liệu đang xem
+                const activeTab = document.querySelector('.nav-item.active');
+                const activeTabId = activeTab ? activeTab.getAttribute('data-tab') : 'overview';
+                
+                // Tải lại dữ liệu tổng quan
+                await loadDashboardData();
+                
+                // Tải lại tab báo cáo hiện tại (nếu khác tổng quan)
+                if (activeTabId && activeTabId !== 'overview') {
+                    onTabChanged(activeTabId);
+                }
+            }
+        };
+    } catch (e) {
+        console.error('[SSE] Không thể cấu hình SSE cho CEO Dashboard:', e);
+    }
 }
 
 // Đăng ký các hàm toàn cục để gọi từ HTML nội tuyến

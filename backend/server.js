@@ -13,6 +13,7 @@ const { getHRPool, getPayrollPool, closePools } = require('./config/database');
 const reportsRoutes = require('./routes/reports');
 const alertsRoutes = require('./routes/alerts');
 const employeesRoutes = require('./routes/employees');
+const payrollRoutes = require('./routes/payroll');
 
 require('dotenv').config();
 
@@ -26,10 +27,40 @@ app.use(express.json());
 // Phục vụ các file tĩnh của Frontend nếu cần chạy chung server
 app.use(express.static('../frontend'));
 
+// ============================================================
+// REAL-TIME SYNCHRONIZATION VIA SERVER-SENT EVENTS (SSE)
+// ============================================================
+let sseClients = [];
+
+app.get('/api/updates', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    sseClients.push(res);
+    console.log(`[SSE] Client mới kết nối. Tổng số client: ${sseClients.length}`);
+
+    req.on('close', () => {
+        sseClients = sseClients.filter(c => c !== res);
+        console.log(`[SSE] Client đã ngắt kết nối. Tổng số client: ${sseClients.length}`);
+    });
+});
+
+function broadcastUpdate(action, data) {
+    console.log(`[SSE] Phát tín hiệu hành động: ${action} tới ${sseClients.length} clients`);
+    sseClients.forEach(client => {
+        client.write(`data: ${JSON.stringify({ type: 'REFRESH', action, data })}\n\n`);
+    });
+}
+
+app.set('broadcastUpdate', broadcastUpdate);
+
 // Định tuyến API (API Routing)
 app.use('/api/reports', reportsRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/employees', employeesRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 // Endpoint kiểm tra trạng thái sức khỏe của API & DB
 app.get('/api/health', async (req, res) => {

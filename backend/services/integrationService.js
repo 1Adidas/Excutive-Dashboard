@@ -312,10 +312,197 @@ async function filterEmployeesByIncome(amount, department = null, options = {}) 
     };
 }
 
+/**
+ * Thêm mới nhân sự tích hợp (Saga Pattern)
+ * @param {Object} data - Dữ liệu gộp HR & Payroll
+ */
+async function createIntegratedEmployee(data) {
+    const employeeId = parseInt(data.Employee_ID);
+    if (isNaN(employeeId)) {
+        throw new Error("Mã nhân viên phải là số hợp lệ.");
+    }
+
+    // 1. Thực hiện ghi vào HR_Legacy_DB
+    try {
+        await hrService.createEmployee({
+            Employee_ID: employeeId,
+            First_Name: data.First_Name,
+            Last_Name: data.Last_Name,
+            Department: data.Department,
+            Hire_Date: data.Hire_Date,
+            Date_of_Birth: data.Date_of_Birth,
+            Gender: data.Gender,
+            Ethnicity: data.Ethnicity,
+            Vacation_Days_Used: parseInt(data.Vacation_Days_Used) || 0,
+            Marital_Status: data.Marital_Status || 'Single',
+            Wedding_Anniversary: data.Wedding_Anniversary || null
+        });
+        console.log(`[Saga] Bước 1 thành công: Ghi HR DB cho mã NV #${employeeId}`);
+    } catch (err) {
+        console.error(`[Saga] Bước 1 thất bại khi ghi HR DB:`, err.message);
+        throw new Error(`Thất bại khi ghi thông tin HR: ${err.message}`);
+    }
+
+    // 2. Thực hiện ghi vào Payroll_Legacy_DB
+    try {
+        await payrollService.createPayroll({
+            Employee_ID: employeeId,
+            Current_Year_Income: parseFloat(data.Current_Year_Income) || 0,
+            Previous_Year_Income: parseFloat(data.Previous_Year_Income) || 0,
+            Shareholder_Status: data.Shareholder_Status === 'Shareholder' || data.Shareholder_Status === true || data.Shareholder_Status === 1 ? 1 : 0,
+            Employment_Type: data.Employment_Type || 'Full-time',
+            Benefit_Plan: data.Benefit_Plan || 'Standard'
+        });
+        console.log(`[Saga] Bước 2 thành công: Ghi Payroll DB cho mã NV #${employeeId}`);
+    } catch (err) {
+        console.warn(`[Saga] Bước 2 thất bại khi ghi Payroll DB! Tiến hành khôi phục trạng thái (Compensating Transaction)...`);
+        
+        // Giao dịch bù đắp: Xóa nhân viên vừa thêm ở HR DB
+        try {
+            await hrService.deleteEmployee(employeeId);
+            console.log(`[Saga] Giao dịch bù đắp thành công: Đã xóa NV #${employeeId} khỏi HR DB.`);
+        } catch (rollbackErr) {
+            console.error(`[Saga ERROR] LỖI CỰC KỲ NGHIÊM TRỌNG: Không thể hoàn tác ghi HR DB cho NV #${employeeId}.`, rollbackErr.message);
+        }
+        
+        throw new Error(`Thất bại khi ghi thông tin lương (Hệ thống đã khôi phục trạng thái cũ): ${err.message}`);
+    }
+}
+
+/**
+ * Cập nhật thông tin nhân sự tích hợp (Saga Pattern)
+ * @param {number} employeeId 
+ * @param {Object} data 
+ */
+async function updateIntegratedEmployee(employeeId, data) {
+    // Để cập nhật, chúng ta cần backup trạng thái cũ đề phòng thất bại để rollback
+    let oldEmployee = null;
+    let oldPayroll = null;
+
+    try {
+        const poolHR = await hrService.getAllEmployees();
+        const poolPay = await payrollService.getAllPayroll();
+        
+        const existingEmp = poolHR.find(e => e.Employee_ID === employeeId);
+        const existingPay = poolPay.find(p => p.Employee_ID === employeeId);
+
+        if (existingEmp) oldEmployee = { ...existingEmp };
+        if (existingPay) oldPayroll = { ...existingPay };
+    } catch (err) {
+        throw new Error(`Không thể sao lưu dữ liệu cũ để cập nhật: ${err.message}`);
+    }
+
+    // 1. Cập nhật HR DB
+    const currentEmp = oldEmployee || {};
+    try {
+        await hrService.updateEmployee(employeeId, {
+            First_Name: data.First_Name !== undefined ? data.First_Name : currentEmp.First_Name,
+            Last_Name: data.Last_Name !== undefined ? data.Last_Name : currentEmp.Last_Name,
+            Department: data.Department !== undefined ? data.Department : currentEmp.Department,
+            Hire_Date: data.Hire_Date !== undefined ? data.Hire_Date : currentEmp.Hire_Date,
+            Date_of_Birth: data.Date_of_Birth !== undefined ? data.Date_of_Birth : currentEmp.Date_of_Birth,
+            Gender: data.Gender !== undefined ? data.Gender : currentEmp.Gender,
+            Ethnicity: data.Ethnicity !== undefined ? data.Ethnicity : currentEmp.Ethnicity,
+            Vacation_Days_Used: data.Vacation_Days_Used !== undefined ? parseInt(data.Vacation_Days_Used) : currentEmp.Vacation_Days_Used,
+            Marital_Status: data.Marital_Status !== undefined ? data.Marital_Status : currentEmp.Marital_Status,
+            Wedding_Anniversary: data.Wedding_Anniversary !== undefined ? data.Wedding_Anniversary : currentEmp.Wedding_Anniversary
+        });
+        console.log(`[Saga Update] Bước 1 thành công: Cập nhật HR DB cho mã NV #${employeeId}`);
+    } catch (err) {
+        console.error(`[Saga Update] Bước 1 thất bại khi ghi HR DB:`, err.message);
+        throw new Error(`Cập nhật thông tin nhân sự thất bại: ${err.message}`);
+    }
+
+    // 2. Cập nhật Payroll DB
+    try {
+        // Lấy thông tin lương hiện tại để đảm bảo các trường không sửa vẫn giữ nguyên
+        const currentPayroll = oldPayroll || {};
+        await payrollService.updatePayroll(employeeId, {
+            Current_Year_Income: data.Current_Year_Income !== undefined ? parseFloat(data.Current_Year_Income) : currentPayroll.Current_Year_Income,
+            Previous_Year_Income: data.Previous_Year_Income !== undefined ? parseFloat(data.Previous_Year_Income) : currentPayroll.Previous_Year_Income,
+            Shareholder_Status: data.Shareholder_Status !== undefined ? (data.Shareholder_Status === 'Shareholder' || data.Shareholder_Status === true || data.Shareholder_Status === 1 ? 1 : 0) : currentPayroll.Shareholder_Status,
+            Employment_Type: data.Employment_Type !== undefined ? data.Employment_Type : currentPayroll.Employment_Type,
+            Benefit_Plan: data.Benefit_Plan !== undefined ? data.Benefit_Plan : currentPayroll.Benefit_Plan
+        });
+        console.log(`[Saga Update] Bước 2 thành công: Cập nhật Payroll DB cho mã NV #${employeeId}`);
+    } catch (err) {
+        console.warn(`[Saga Update] Bước 2 thất bại! Tiến hành khôi phục trạng thái cũ (Compensating Transaction)...`);
+        
+        // Hoàn tác bước 1: Ghi lại dữ liệu HR cũ
+        if (oldEmployee) {
+            try {
+                await hrService.updateEmployee(employeeId, oldEmployee);
+                console.log(`[Saga Update] Bù đắp thành công: Đã khôi phục dữ liệu HR cũ cho NV #${employeeId}.`);
+            } catch (rollbackErr) {
+                console.error(`[Saga Update ERROR] Không thể hoàn tác cập nhật HR cho NV #${employeeId}.`, rollbackErr.message);
+            }
+        }
+        throw new Error(`Cập nhật thông tin lương thất bại (Hệ thống đã khôi phục trạng thái cũ): ${err.message}`);
+    }
+}
+
+/**
+ * Xóa nhân sự tích hợp (Saga Pattern)
+ * @param {number} employeeId - ID nhân viên
+ */
+async function deleteIntegratedEmployee(employeeId) {
+    // Lưu trữ dự phòng thông tin trước khi xóa
+    let backupEmployee = null;
+    let backupPayroll = null;
+
+    try {
+        const poolHR = await hrService.getAllEmployees();
+        const poolPay = await payrollService.getAllPayroll();
+        
+        const existingEmp = poolHR.find(e => e.Employee_ID === employeeId);
+        const existingPay = poolPay.find(p => p.Employee_ID === employeeId);
+
+        if (existingEmp) backupEmployee = { ...existingEmp };
+        if (existingPay) backupPayroll = { ...existingPay };
+    } catch (err) {
+        throw new Error(`Không thể sao lưu dữ liệu trước khi xóa: ${err.message}`);
+    }
+
+    // 1. Xóa Payroll DB trước
+    try {
+        if (backupPayroll) {
+            await payrollService.deletePayroll(employeeId);
+            console.log(`[Saga Delete] Bước 1 thành công: Xóa Payroll DB cho mã NV #${employeeId}`);
+        }
+    } catch (err) {
+        console.error(`[Saga Delete] Bước 1 thất bại khi xóa Payroll DB:`, err.message);
+        throw new Error(`Không thể xóa dữ liệu lương: ${err.message}`);
+    }
+
+    // 2. Xóa HR DB
+    try {
+        if (backupEmployee) {
+            await hrService.deleteEmployee(employeeId);
+            console.log(`[Saga Delete] Bước 2 thành công: Xóa HR DB cho mã NV #${employeeId}`);
+        }
+    } catch (err) {
+        console.warn(`[Saga Delete] Bước 2 thất bại khi xóa HR DB! Tiến hành phục hồi Payroll (Compensating Transaction)...`);
+        
+        // Khôi phục lương cũ
+        if (backupPayroll) {
+            try {
+                await payrollService.createPayroll(backupPayroll);
+                console.log(`[Saga Delete] Bù đắp thành công: Đã khôi phục dữ liệu lương cũ cho NV #${employeeId}.`);
+            } catch (rollbackErr) {
+                console.error(`[Saga Delete ERROR] Không thể khôi phục dữ liệu lương cho NV #${employeeId}.`, rollbackErr.message);
+            }
+        }
+        throw new Error(`Không thể xóa thông tin nhân viên (Hệ thống đã khôi phục trạng thái cũ): ${err.message}`);
+    }
+}
+
 module.exports = {
     getMergedEmployeeData,
     getIncomeReport,
     getVacationReport,
     getBenefitsReport,
-    filterEmployeesByIncome
+    filterEmployeesByIncome,
+    createIntegratedEmployee,
+    updateIntegratedEmployee,
+    deleteIntegratedEmployee
 };

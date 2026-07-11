@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Nhân Sự (HR Legacy) - Tích Hợp Đồng Bộ</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheet chính -->
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Tùy chỉnh màu sắc thương hiệu của HR: Pink/Magenta accents */
+        :root {
+            --hr-accent: #ff477e;
+            --hr-accent-glow: rgba(255, 71, 126, 0.15);
+        }
+        .sidebar-logo .logo-icon {
+            color: var(--hr-accent);
+            text-shadow: 0 0 10px rgba(255, 71, 126, 0.5);
+        }
+        .btn-hr-primary {
+            background: linear-gradient(135deg, #ff477e 0%, #ff7096 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 71, 126, 0.3);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-hr-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 71, 126, 0.4);
+            filter: brightness(1.1);
+        }
+        .nav-item.active {
+            border-left: 4px solid var(--hr-accent) !important;
+            background: linear-gradient(90deg, rgba(255, 71, 126, 0.1) 0%, transparent 100%) !important;
+            color: var(--hr-accent) !important;
+        }
+        .nav-item.active i {
+            color: var(--hr-accent) !important;
+        }
+        .status-dot.syncing {
+            background-color: #ff477e;
+            box-shadow: 0 0 8px #ff477e;
+            animation: pulse 1s infinite alternate;
+        }
+        /* Custom styles for tables and badges */
+        .badge-dept {
+            background: rgba(255, 71, 126, 0.1);
+            color: #ff477e;
+            border: 1px solid rgba(255, 71, 126, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-user-gear logo-icon"></i>
+                <h2>Executive HR</h2>
+                <span class="logo-sub">Legacy HR System</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-users-gear"></i> Quản lý nhân sự
+                </a>
+                <div class="divider" style="margin: 15px 0; border-color: rgba(255,255,255,0.05);"></div>
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i> CEO Dashboard
+                </a>
+                <a href="payroll.html" class="nav-item">
+                    <i class="fa-solid fa-credit-card"></i> Payroll System
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot online" id="sync-status-dot"></span>
+                    <span class="status-text" id="sync-status-text">Đồng bộ: Sẵn sàng</span>
+                </div>
+                <div class="integration-method">
+                    <i class="fa-solid fa-rotate text-purple"></i> SSE Real-time Sync
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <h1>Hệ Thống Quản Lý Nhân Sự (HR Legacy)</h1>
+                </div>
+                <div class="header-profile">
+                    <div class="theme-toggle-btn" id="theme-toggle" title="Chuyển chế độ Sáng/Tối">
+                        <i class="fa-solid fa-sun" id="theme-icon"></i>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="profile-info">
+                        <span class="profile-role">Hệ thống thành viên</span>
+                        <span class="profile-name">HR Manager</span>
+                    </div>
+                    <div class="profile-avatar" style="background: var(--hr-accent-glow); color: var(--hr-accent);">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-body">
+                <div class="table-card glass-panel" style="margin-top: 0;">
+                    <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <h3>Danh sách nhân sự liên kết</h3>
+                            <p class="text-secondary" style="font-size: 0.8rem; margin-top: 4px;">Quản lý hồ sơ nhân sự tại HR_Legacy_DB. Các hành động thêm/sửa/xóa sẽ tự động đồng bộ sang Payroll DB.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="hr-search-input" placeholder="Tìm tên hoặc mã nhân viên..." style="width: 250px;">
+                            </div>
+                            <button class="btn btn-hr-primary" id="btn-add-employee">
+                                <i class="fa-solid fa-user-plus"></i> Thêm nhân viên
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+                        <table class="custom-table" id="hr-employee-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã số</th>
+                                    <th>Họ Tên</th>
+                                    <th>Phòng ban</th>
+                                    <th>Giới tính</th>
+                                    <th>Ngày sinh</th>
+                                    <th>Ngày tuyển dụng</th>
+                                    <th>Phép đã dùng</th>
+                                    <th>Hôn nhân</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="9" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ADD/EDIT EMPLOYEE MODAL -->
+    <div class="modal-backdrop" id="employee-modal" style="display: none;">
+        <div class="modal-content glass-panel" style="max-width: 700px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255, 71, 126, 0.15);">
+                <h3 id="modal-title-text"><i class="fa-solid fa-user-plus text-pink"></i> Thêm Nhân Sự Mới</h3>
+                <button class="close-modal" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="employee-form">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+                    <!-- Nhãn phân nhóm 1 -->
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--hr-accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-id-card"></i> 1. Thông Tin Nhân Sự (Ghi vào HR Database)
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-id">Mã nhân viên (ID):</label>
+                            <input type="number" id="emp-id" required placeholder="Ví dụ: 1011" min="1000">
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-dept">Phòng ban:</label>
+                            <select id="emp-dept" class="custom-select" required>
+                                <option value="IT">IT</option>
+                                <option value="HR">HR</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Operations">Operations</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-lastname">Họ đệm:</label>
+                            <input type="text" id="emp-lastname" required placeholder="Ví dụ: Nguyễn Văn">
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-firstname">Tên chính:</label>
+                            <input type="text" id="emp-firstname" required placeholder="Ví dụ: An">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-gender">Giới tính:</label>
+                            <select id="emp-gender" class="custom-select" required>
+                                <option value="Male">Nam (Male)</option>
+                                <option value="Female">Nữ (Female)</option>
+                                <option value="Other">Khác (Other)</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-ethnicity">Sắc tộc (Ethnicity):</label>
+                            <input type="text" id="emp-ethnicity" required placeholder="Ví dụ: Asian, Caucasian, ..." value="Asian">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-dob">Ngày sinh:</label>
+                            <input type="date" id="emp-dob" required>
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-hiredate">Ngày tuyển dụng:</label>
+                            <input type="date" id="emp-hiredate" required>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-marital">Tình trạng hôn nhân:</label>
+                            <select id="emp-marital" class="custom-select" required>
+                                <option value="Single">Độc thân (Single)</option>
+                                <option value="Married">Đã kết hôn (Married)</option>
+                                <option value="Divorced">Ly hôn (Divorced)</option>
+                                <option value="Widowed">Góa bụa (Widowed)</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-wedding">Ngày kỷ niệm cưới (nếu có):</label>
+                            <input type="date" id="emp-wedding" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Nhãn phân nhóm 2 -->
+                    <div id="payroll-fields-header" style="font-size: 0.85rem; font-weight: 700; color: #a855f7; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                        <i class="fa-solid fa-money-check-dollar"></i> 2. Thông Tin Lương khởi tạo (Ghi vào Payroll Database)
+                    </div>
+                    
+                    <div id="payroll-fields-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-income">Lương hiện tại (Current Year, USD):</label>
+                            <input type="number" id="emp-income" value="0" min="0" required placeholder="Ví dụ: 60000">
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-prev-income">Lương năm ngoái (Previous Year, USD):</label>
+                            <input type="number" id="emp-prev-income" value="0" min="0" required placeholder="Ví dụ: 55000">
+                        </div>
+                    </div>
+
+                    <div id="payroll-fields-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-type">Loại hình làm việc:</label>
+                            <select id="emp-type" class="custom-select" required>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="margin: 0;">
+                            <label for="emp-plan">Gói phúc lợi (Benefit Plan):</label>
+                            <select id="emp-plan" class="custom-select" required>
+                                <option value="Standard">Standard</option>
+                                <option value="Gold">Gold</option>
+                                <option value="Platinum">Platinum</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="payroll-fields-grid-3" class="control-group" style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="emp-shareholder" style="width: auto; cursor: pointer;">
+                        <label for="emp-shareholder" style="cursor: pointer; margin: 0; user-select: none;">Nhân viên này sở hữu cổ phần công ty (Cổ đông)?</label>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px;">
+                    <button type="button" class="btn btn-outline-warning" id="btn-cancel-form">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-hr-primary" id="btn-save-employee">Lưu nhân sự</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logic Script imports -->
+    <script src="js/hr.js"></script>
+</body>
+</html>
